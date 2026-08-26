@@ -1,0 +1,16 @@
+﻿<Application x:Class="SocketTestTool.App"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:local="clr-namespace:SocketTestTool"
+             StartupUri="Views/MainWindow.xaml">
+    <Application.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <!-- 색상 팔레트가 먼저, 그 색을 참조하는 스타일이 나중입니다.
+                     ThemeService가 실행 중에 이 첫 항목만 Dark.xaml로 바꿔 끼웁니다. -->
+                <ResourceDictionary Source="Themes/Light.xaml"/>
+                <ResourceDictionary Source="Themes/Fluent.xaml"/>
+            </ResourceDictionary.MergedDictionaries>
+        </ResourceDictionary>
+    </Application.Resources>
+</Application>

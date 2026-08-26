@@ -1,0 +1,45 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    기능 QA 하네스 — 앱이 제공하는 모든 기능을 훑습니다 (158개 검사)
+
+    앱을 실제로 띄우고 실제 소켓을 열어 확인하는 검증 하네스입니다.
+    본체(SocketTestTool)와는 별개 프로젝트이며, 본체 빌드에는 포함되지 않습니다.
+    (SocketTestTool.csproj에서 qa 폴더를 제외하고 있습니다.)
+
+    실행 전에 본체를 Debug로 먼저 빌드해야 합니다. 자세한 내용은 qa/README.md 참고.
+  -->
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <Nullable>disable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+    <AssemblyName>FunctionalQa</AssemblyName>
+    <RootNamespace>FullQa</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Include="Qa.cs" />
+    <Compile Include="Suite.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!--
+      본체를 ProjectReference로 참조할 수 없습니다.
+      본체가 SelfContained라서 NETSDK1150("자체 포함 실행 파일은 자체 포함이 아닌 실행 파일에서 참조할 수 없음")이 납니다.
+      그래서 빌드된 DLL을 직접 참조합니다. 본체를 먼저 빌드해 두어야 합니다.
+    -->
+    <Reference Include="SocketTestTool">
+      <HintPath>..\..\bin\Debug\net8.0-windows\win-x64\SocketTestTool.dll</HintPath>
+    </Reference>
+
+    <!-- 본체가 쓰는 패키지들. 실행 시 필요합니다. -->
+    <PackageReference Include="Microsoft.Xaml.Behaviors.Wpf" Version="1.1.135" />
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.4" />
+    <PackageReference Include="System.Drawing.Common" Version="8.0.0" />
+  </ItemGroup>
+
+</Project>

@@ -1,0 +1,65 @@
+﻿<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <!--
+        다크 테마 색상 팔레트입니다.
+        Light.xaml과 키 이름이 1:1로 같아야 하며, 값만 어두운 배경에 맞게 바꿨습니다.
+        Windows 11 다크 모드의 표면 단계(#202020 바탕 / #2B2B2B 카드)를 따르고,
+        강조색은 어두운 배경에서도 읽히도록 목업의 #0F6CBD보다 밝은 파랑을 씁니다.
+    -->
+
+    <Color x:Key="AccentColor">#FF4CA6F0</Color>
+    <Color x:Key="AccentHoverColor">#FF6FB9F5</Color>
+    <Color x:Key="SuccessColor">#FF6CCB6C</Color>
+    <Color x:Key="DangerColor">#FFFF6B5E</Color>
+    <Color x:Key="WarningColor">#FFE3A04A</Color>
+
+    <!-- 강조색 -->
+    <SolidColorBrush x:Key="AccentBrush" Color="{StaticResource AccentColor}"/>
+    <SolidColorBrush x:Key="AccentHoverBrush" Color="{StaticResource AccentHoverColor}"/>
+    <SolidColorBrush x:Key="AccentSubtleBrush" Color="#1F4CA6F0"/>
+    <SolidColorBrush x:Key="AccentBadgeBrush" Color="#334CA6F0"/>
+    <SolidColorBrush x:Key="AccentRowTintBrush" Color="#144CA6F0"/>
+
+    <!-- 상태색 -->
+    <SolidColorBrush x:Key="SuccessBrush" Color="{StaticResource SuccessColor}"/>
+    <SolidColorBrush x:Key="SuccessBadgeBrush" Color="#336CCB6C"/>
+    <SolidColorBrush x:Key="SuccessRowTintBrush" Color="#146CCB6C"/>
+    <SolidColorBrush x:Key="DangerBrush" Color="{StaticResource DangerColor}"/>
+    <SolidColorBrush x:Key="DangerBadgeBrush" Color="#33FF6B5E"/>
+    <SolidColorBrush x:Key="DangerBorderBrush" Color="#80FF6B5E"/>
+    <SolidColorBrush x:Key="DangerTintBrush" Color="#1FFF6B5E"/>
+    <SolidColorBrush x:Key="WarningBrush" Color="{StaticResource WarningColor}"/>
+    <SolidColorBrush x:Key="WarningBadgeBrush" Color="#33E3A04A"/>
+
+    <!-- 표면 -->
+    <SolidColorBrush x:Key="WindowBackgroundBrush" Color="#FF202020"/>
+    <SolidColorBrush x:Key="CardBackgroundBrush" Color="#FF2B2B2B"/>
+    <SolidColorBrush x:Key="SubtleBackgroundBrush" Color="#FF262626"/>
+    <SolidColorBrush x:Key="ControlFillBrush" Color="#FF383838"/>
+    <SolidColorBrush x:Key="SegmentTrackBrush" Color="#FF1C1C1C"/>
+
+    <!-- 테두리 -->
+    <SolidColorBrush x:Key="CardBorderBrush" Color="#1AFFFFFF"/>
+    <SolidColorBrush x:Key="ControlBorderBrush" Color="#26FFFFFF"/>
+    <SolidColorBrush x:Key="ControlBorderBottomBrush" Color="#73FFFFFF"/>
+
+    <!-- 텍스트 -->
+    <SolidColorBrush x:Key="TextPrimaryBrush" Color="#FFF2F2F2"/>
+    <SolidColorBrush x:Key="TextSecondaryBrush" Color="#FFBDBDBD"/>
+    <SolidColorBrush x:Key="TextTertiaryBrush" Color="#FFAFAFAF"/>
+    <SolidColorBrush x:Key="TextMutedBrush" Color="#FF919191"/>
+    <SolidColorBrush x:Key="TextFaintBrush" Color="#FF7C7C7C"/>
+    <!-- 밝은 강조색 위에는 어두운 글자가 더 잘 읽힙니다. -->
+    <SolidColorBrush x:Key="TextOnAccentBrush" Color="#FF10171D"/>
+    <SolidColorBrush x:Key="StoppedDotBrush" Color="#FF7C7C7C"/>
+
+    <!-- 상호작용 -->
+    <SolidColorBrush x:Key="HoverOverlayBrush" Color="#14FFFFFF"/>
+    <SolidColorBrush x:Key="PressedOverlayBrush" Color="#26FFFFFF"/>
+
+    <!-- 어두운 배경에서는 그림자가 거의 보이지 않으므로 더 짙게 둡니다. -->
+    <DropShadowEffect x:Key="CardShadow" BlurRadius="6" ShadowDepth="1" Direction="270" Opacity="0.45" Color="#000000"/>
+    <DropShadowEffect x:Key="SelectedCardShadow" BlurRadius="12" ShadowDepth="2" Direction="270" Opacity="0.55" Color="#4CA6F0"/>
+
+</ResourceDictionary>
