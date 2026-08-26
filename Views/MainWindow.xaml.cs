@@ -98,7 +98,9 @@ namespace SocketTestTool
                 {
                     if (item is LogEntry entry)
                     {
-                        string hexData = entry.Data != null ? Common.ByteConverter.ToHexString(entry.Data, entry.Length) : "";
+                        // entry.Length는 '실제로 오간 길이'이고, Data는 표시 상한까지만 보관됩니다.
+                        // 따라서 보유한 배열 길이를 기준으로 변환해야 범위를 넘지 않습니다.
+                        string hexData = entry.Data != null ? Common.ByteConverter.ToHexString(entry.Data, entry.Data.Length) : "";
                         return entry.DisplayMessage.IndexOf(searchText, System.StringComparison.OrdinalIgnoreCase) >= 0 ||
                                hexData.Replace(" ", "").IndexOf(searchText.Replace(" ", ""), System.StringComparison.OrdinalIgnoreCase) >= 0;
                     }

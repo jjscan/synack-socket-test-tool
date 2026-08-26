@@ -59,9 +59,21 @@ namespace SocketTestTool.Models
             // v2.0.1은 재설계 이후에 나온 '원래 되어야 했던 것'들만 고친 패치입니다.
             new ReleaseNote
             {
-                Version = "v2.0.2",
+                Version = "v2.0.3",
                 ReleaseDate = "2026-08-26",
                 IsCurrent = true,
+                Tagline = "보안 강화",
+                BugFixes =
+                {
+                    new ReleaseNoteItem("악의적 무한 스트림에 의한 메모리 고갈 차단",
+                        "쉬지 않고 데이터를 보내는 클라이언트가 서버의 수신 누적을 무한히 키워 프로그램을 메모리 부족으로 죽일 수 있던 문제 수정. 한 프레임 누적에 16 MB 상한을 두고, 로그가 보관하는 원본 바이트도 표시 상한(4 KB)까지만 남기도록 변경. 자동 전달로 나가는 데이터는 잘리기 전 원본 전량 그대로입니다.")
+                }
+            },
+
+            new ReleaseNote
+            {
+                Version = "v2.0.2",
+                ReleaseDate = "2026-08-26",
                 Tagline = "보안 강화",
                 BugFixes =
                 {

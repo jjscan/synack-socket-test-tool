@@ -89,8 +89,10 @@ namespace SocketTestTool.Models
         /// <summary>
         /// 원본 바이트를 16진수 문자열로 표현한 값입니다. (Hex 보기용)
         /// </summary>
+        // Data는 표시 상한까지만 보관될 수 있으므로(MainViewModel.HandleLogEntry에서 트리밍),
+        // Length(실제 오간 길이)가 아니라 '실제 보유한 배열 길이'로 변환해야 범위를 넘지 않습니다.
         public string HexText => Data != null && Data.Length > 0
-            ? Common.ByteConverter.ToHexString(Data, DisplayLength) + TruncationNote
+            ? Common.ByteConverter.ToHexString(Data, Math.Min(Data.Length, DisplayLength)) + TruncationNote
             : string.Empty;
 
         /// <summary>

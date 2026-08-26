@@ -900,10 +900,25 @@ namespace SocketTestTool.ViewModels
             if (conn.IsRealtimeLogEnabled) LogService.Write(conn.Id, entry);
 
             // 수신 데이터 자동 전달이 켜져 있으면, 받은 원본 바이트를 그대로 대상 서버로 흘려보냅니다.
+            // (반드시 아래 Data 트리밍 '전에' 해야 원본 전량이 전달됩니다.)
             if (entry.Direction == LogDirection.Received && entry.Data != null && entry.Data.Length > 0
                 && conn.Forwarder is ForwardingClient forwarder)
             {
                 forwarder.Enqueue(entry.Data);
+            }
+
+            // [보안/자원] 로그 항목이 보관하는 원본 바이트를 표시 상한(4KB)까지만 남깁니다.
+            //
+            // 로그는 개수(1000건)로만 제한돼 있어서, 항목 하나가 수 MB짜리 Data를 쥐고 있으면
+            // 개수 상한과 무관하게 메모리가 폭주합니다. 악의적 클라이언트가 큰 프레임을 연속으로 보내면
+            // _logQueue와 Logs에 큰 바이트 배열이 쌓여 OutOfMemory에 이를 수 있습니다.
+            // 표시(디코딩·Hex·검색)와 파일 기록은 어차피 앞 4KB까지만 쓰고, 전달은 위에서 이미 끝냈으므로
+            // 여기서 원본을 잘라도 기능 손실이 없습니다. Length에는 실제 길이를 그대로 둡니다.
+            if (entry.Data != null && entry.Data.Length > LogEntry.DisplayByteLimit)
+            {
+                var trimmed = new byte[LogEntry.DisplayByteLimit];
+                Array.Copy(entry.Data, trimmed, LogEntry.DisplayByteLimit);
+                entry.Data = trimmed;
             }
 
             // 이 메서드는 소켓 백그라운드 스레드에서 호출됩니다.

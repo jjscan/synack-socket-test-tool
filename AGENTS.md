@@ -45,13 +45,13 @@ dotnet build
 
 ## 검증
 
-기능 QA 158개 / 부하 테스트 42개를 통과한 상태입니다(v2.0.1).
+기능 QA 166개 / 부하 테스트 49개를 통과한 상태입니다(v2.0.3).
 소켓·ViewModel·테마를 건드렸다면 손으로 확인하지 말고 **저장소에 들어 있는 하네스를 돌리세요.**
 
 ```bash
 dotnet build
-dotnet run --project qa/FunctionalQa   # 기능 158개, 약 40초
-dotnet run --project qa/StressTest     # 부하 42개, 약 90초
+dotnet run --project qa/FunctionalQa   # 기능 166개, 약 40초
+dotnet run --project qa/StressTest     # 부하 49개, 약 100초
 ```
 
 자세한 내용은 [qa/README.md](qa/README.md).

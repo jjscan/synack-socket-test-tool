@@ -30,6 +30,15 @@ namespace SocketTestTool.Services
         // 그 예외를 '서버를 열지 못했다'는 오류로 오해하지 않기 위해 필요합니다.
         private volatile bool _isStopping;
 
+        // [보안] 한 프레임으로 누적할 수 있는 최대 바이트 수입니다. (CWE-400 자원 고갈 방지)
+        //
+        // 수신 누적은 ReceiveTimeout(기본 300ms)의 '침묵'이 올 때까지 계속됩니다.
+        // 이 상한이 없으면, 악의적 클라이언트가 침묵 없이 계속 스트리밍할 때
+        // accumulatedData가 무한히 커져 단일 연결만으로 프로세스를 OutOfMemory로 죽일 수 있습니다.
+        // 이 값(16MB)은 이 도구가 다룰 법한 어떤 정상 전문보다도 훨씬 크므로 정상 사용에는 영향이 없고,
+        // 상한에 닿으면 거기까지를 한 프레임으로 처리한 뒤 계속 수신합니다.
+        private const int MaxAccumulatedBytes = 16 * 1024 * 1024;
+
         // 수신 대기 타임아웃 (기본값 300ms, 데이터가 끊겨 들어올 때 기다리는 시간)
         public int ReceiveTimeout { get; set; } = 300;
 
@@ -261,8 +270,11 @@ namespace SocketTestTool.Services
                     {
                         DateTime lastDataTime = DateTime.Now;
 
-                        // 마지막 데이터 수신 후 Timeout이 지날 때까지 루프
-                        while ((DateTime.Now - lastDataTime).TotalMilliseconds < ReceiveTimeout)
+                        // 마지막 데이터 수신 후 Timeout이 지날 때까지 루프.
+                        // [보안] 프레임 상한에 닿으면 침묵을 더 기다리지 않고 즉시 빠져나와 처리합니다.
+                        // 그래야 침묵 없이 계속 쏟아붓는 클라이언트에서 누적이 무한히 커지지 않습니다.
+                        while ((DateTime.Now - lastDataTime).TotalMilliseconds < ReceiveTimeout
+                               && accumulatedData.Count < MaxAccumulatedBytes)
                         {
                             if (stream.DataAvailable)
                             {

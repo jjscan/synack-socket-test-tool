@@ -332,6 +332,26 @@ namespace Stress
                 });
             }
 
+            /// <summary>
+            /// 침묵 없이 계속 스트리밍합니다. Dispose()나 별도 stopFlag로 멈출 때까지 멈추지 않습니다.
+            /// 서버의 수신 누적 상한을 검증하는 데 씁니다.
+            /// </summary>
+            public System.Threading.Tasks.Task FloodAsync(byte[] payload, Func<bool> keepGoing)
+            {
+                return System.Threading.Tasks.Task.Run(() =>
+                {
+                    var s = _client.GetStream();
+                    try
+                    {
+                        while (!_stopped && keepGoing())
+                        {
+                            s.Write(payload, 0, payload.Length);
+                        }
+                    }
+                    catch (Exception) { /* 상대가 끊거나 Dispose되면 정상 종료 */ }
+                });
+            }
+
             public void Dispose() { _stopped = true; try { _client.Close(); } catch (Exception) { } }
         }
 

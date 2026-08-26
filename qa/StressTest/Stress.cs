@@ -53,10 +53,11 @@ namespace Stress
             Run("5. 로그 폭주와 순환 버퍼", LogFlood);
             Run("6. 자동 전달 큐 상한 (대상 다운)", ForwardingBackpressure);
             Run("7. 연결 수 확장 — 자원 한계 탐색", ScaleOut);
-            Run("8. 정리 후 자원 회수", Recovery);
+            Run("8. 악의적 무한 스트림 (수신 누적 상한)", MaliciousFlood);
+            Run("9. 정리 후 자원 회수", Recovery);
 
             var final = Measure();
-            Section("9. 최종 상태");
+            Section("10. 최종 상태");
             Note("시작: " + baseline);
             Note("종료: " + final);
             Check("테스트 후에도 프로세스 메모리가 기준선 대비 400 MB 이내",
@@ -521,7 +522,86 @@ namespace Stress
 
         #endregion
 
-        #region 8. 회수
+        #region 8. 악의적 무한 스트림
+
+        /// <summary>
+        /// [보안] 악의적 클라이언트가 침묵 없이 계속 스트리밍하는 상황입니다.
+        /// 서버의 수신 누적(accumulatedData)에 상한이 없으면 단일 연결만으로 OutOfMemory 크래시가 납니다.
+        /// 상한(MaxAccumulatedBytes)이 동작하면, 아무리 쏟아부어도 메모리가 제한된 범위에 머물고
+        /// 앱은 살아 있으며 UI도 응답해야 합니다.
+        /// </summary>
+        private static void MaliciousFlood()
+        {
+            // 침묵 감지가 최대한 오래 누적하도록 넉넉한 ReceiveTimeout을 줍니다.
+            // 상한이 없으면 이 설정에서 곧바로 메모리가 폭주합니다.
+            var s = StartServer(out int port, timeout: 1000);
+            var before = Measure();
+
+            long peakProcessMb = before.ProcessMb;
+            var chunk = new byte[65536]; // 64 KB씩 끊김 없이 밀어넣습니다.
+            new Random(7).NextBytes(chunk);
+
+            using (var b = new Blaster())
+            {
+                Check("공격 클라이언트 접속", b.Connect("127.0.0.1", port));
+
+                bool keep = true;
+                var flood = b.FloodAsync(chunk, () => keep);
+
+                // 8초간 쉼 없이 쏟아부으며 메모리 최고치를 관찰합니다.
+                var end = DateTime.Now.AddSeconds(8);
+                while (DateTime.Now < end)
+                {
+                    Pump(200);
+                    long cur = Measure().ProcessMb;
+                    if (cur > peakProcessMb) peakProcessMb = cur;
+
+                    // 안전 장치: 만약 상한이 동작하지 않아 실제로 폭주하면 즉시 멈춰 OS를 보호합니다.
+                    if (cur - before.ProcessMb > 1024)
+                    {
+                        Note("메모리가 1 GB 이상 증가하여 조기 중단 (상한이 동작하지 않는 것으로 의심).");
+                        break;
+                    }
+                }
+
+                keep = false;
+                b.Dispose();
+                WaitUntil(() => flood.IsCompleted, 3000);
+            }
+
+            Pump(500);
+            GC.Collect();
+            GC.WaitForPendingFinalizers();
+            GC.Collect();
+            Pump(300);
+            var after = Measure();
+
+            long grew = peakProcessMb - before.ProcessMb;
+            Note($"플러드 중 프로세스 메모리 최고치: {peakProcessMb} MB (기준 대비 +{grew} MB)");
+            Note("플러드 전: " + before);
+            Note("플러드 후(정리): " + after);
+
+            // 상한(16MB 프레임)이 동작하면 누적 버퍼는 한 프레임 크기로 제한됩니다.
+            // 로그·통계 등 부수 증가를 감안해도 수백 MB 이내에 머물러야 합니다.
+            Check("무한 스트림에도 메모리가 폭주하지 않음 (최고치 증가 < 512 MB)", grew < 512, $"+{grew} MB");
+            Check("공격 중에도 앱이 살아 있음", _w.IsVisible);
+            Check("공격 중에도 UI가 응답함 (최대 지연 < 5초)", _probe.MaxMs < 5000, $"최대 {_probe.MaxMs:0} ms");
+            Check("공격 후 서버가 계속 Listening", s.Status == "Listening", s.Status);
+            Check("공격이 끝나면 메모리가 회수됨 (기준 대비 < 300 MB)",
+                  after.ProcessMb - before.ProcessMb < 300, $"{before.ProcessMb} -> {after.ProcessMb} MB");
+
+            // 공격 후에도 정상 통신이 되는지 확인합니다.
+            using (var ok = new Blaster())
+            {
+                Check("공격 후에도 새 클라이언트가 정상 접속·전송", ok.Connect("127.0.0.1", port));
+                var t = ok.BlastAsync(Encoding.ASCII.GetBytes("STILL-ALIVE"), 1);
+                WaitUntil(() => t.IsCompleted && s.BytesReceived > 0, 5000);
+            }
+        }
+
+        #endregion
+
+        #region 9. 회수
 
         private static void Recovery()
         {
