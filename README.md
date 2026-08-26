@@ -78,7 +78,7 @@ dotnet publish -p:PublishProfile=FolderProfile
 
 상태가 **CONNECTED**로 바뀌고, 서버 로그에 `Client connected`가 찍힙니다.
 
-### 3. 보내 보기
+### 3. 전송 하기
 
 1. 클라이언트 카드를 고릅니다.
 2. 아래 입력창에 `HELLO`를 칩니다.
