@@ -649,7 +649,15 @@ namespace SocketTestTool.ViewModels
         {
             try
             {
-                Process.Start(new ProcessStartInfo("explorer.exe", $"/select,\"{path}\"") { UseShellExecute = true });
+                // 방금 우리가 저장한 파일만 대상으로 삼습니다. 존재하지 않으면 아무것도 하지 않습니다.
+                if (string.IsNullOrWhiteSpace(path) || !File.Exists(path)) return;
+
+                // 인자를 문자열로 이어 붙이지 않고 ArgumentList로 전달해 인자 주입 여지를 없앱니다.
+                // (전체 경로로 정규화해 상대 경로·..\ 도 흡수합니다.)
+                var psi = new ProcessStartInfo("explorer.exe") { UseShellExecute = true };
+                psi.ArgumentList.Add("/select,");
+                psi.ArgumentList.Add(Path.GetFullPath(path));
+                Process.Start(psi);
             }
             catch (Exception)
             {
@@ -937,7 +945,21 @@ namespace SocketTestTool.ViewModels
             // 멀쩡한 서버에 '포트가 이미 사용 중' 오류와 가짜 배너가 뜹니다.
             conn.Status = "Starting";
 
-            if (conn.IsRealtimeLogEnabled) LogService.Initialize(conn);
+            if (conn.IsRealtimeLogEnabled && !LogService.Initialize(conn))
+            {
+                // [보안] 로그 경로가 보호 위치(시스템·시작프로그램 등)라 거부되었거나 파일을 열지 못한 경우입니다.
+                // 실시간 로깅을 꺼서, 이후 쓰기 시도와 오해를 부르는 상태를 정리하고 사용자에게 알립니다.
+                conn.IsRealtimeLogEnabled = false;
+                ShowBanner(new BannerItem
+                {
+                    Severity = BannerSeverity.Warning,
+                    Kind = "log-path-rejected",
+                    ConnectionId = conn.Id,
+                    Title = $"로그 파일을 만들 수 없어 실시간 로깅을 껐습니다 — {conn.Address}",
+                    Detail = "시스템·시작프로그램 등 보호된 위치이거나 접근할 수 없는 경로입니다. 로그 경로를 사용자 폴더로 바꾸세요.",
+                    TechnicalDetail = conn.LogFilePath
+                });
+            }
 
             StartForwarder(conn);
 

@@ -157,7 +157,7 @@ namespace FullQa
                   ReleaseHistory.All.Count(r => r.IsCurrent) == 1 && latest.IsCurrent);
             Check("버전이 내림차순으로 정렬됨",
                   ReleaseHistory.All.Select(r => r.Version).SequenceEqual(
-                      new[] { "v2.0.1", "v2.0.0", "v1.0.1", "v1.0.0" }),
+                      new[] { "v2.0.2", "v2.0.1", "v2.0.0", "v1.0.1", "v1.0.0" }),
                   string.Join(",", ReleaseHistory.All.Select(r => r.Version)));
             Check("VERSIONING.md 문서가 있음",
                   File.Exists(Path.Combine(RepoRoot(), "VERSIONING.md")), RepoRoot());
@@ -169,7 +169,7 @@ namespace FullQa
             Check("버전 기록 창이 최신 버전을 펼쳐 보여 줌", (vh.DataContext as ReleaseNote)?.Version == latest.Version,
                   (vh.DataContext as ReleaseNote)?.Version);
             var list = Find<ListBox>(vh);
-            Check("좌측 버전 목록에 4개 항목", list != null && list.Items.Count == 4, list?.Items.Count.ToString());
+            Check("좌측 버전 목록에 5개 항목", list != null && list.Items.Count == 5, list?.Items.Count.ToString());
             vh.Close();
         }
 
@@ -740,6 +740,43 @@ namespace FullQa
             string exported = string.Join(Environment.NewLine, target.Logs.Select(l => l.DisplayMessage));
             Check("로그 내보내기 형식에 시각·방향·내용이 모두 들어감",
                   exported.Contains("EXPORT-CHECK") && exported.Contains("[System]"));
+
+            // [보안] 악의적 세션이 시스템·시작프로그램 경로로 로그를 쓰려는 시나리오를 막는지 확인합니다.
+            SecureLogging();
+        }
+
+        /// <summary>
+        /// 관리자 권한 + 신뢰할 수 없는 세션 파일 조합에서, 보호 위치로의 로그 쓰기가 차단되는지 검증합니다.
+        /// </summary>
+        private static void SecureLogging()
+        {
+            // 모든 사용자 시작프로그램 폴더 안을 노린 악성 로그 경로입니다.
+            string startup = Environment.GetFolderPath(Environment.SpecialFolder.CommonStartup);
+            string evil = Path.Combine(startup, "fullqa-should-never-exist.log");
+
+            Check("보호 경로 사전 검사(IsPathAllowed)가 시작프로그램을 거부", !LogService.IsPathAllowed(evil), evil);
+            Check("보호 경로 사전 검사가 시스템 폴더를 거부",
+                  !LogService.IsPathAllowed(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.System), "x.log")));
+            Check("보호 경로 사전 검사가 상대경로 우회(..\\)도 정규화 후 거부",
+                  !LogService.IsPathAllowed(Path.Combine(startup, "..", Path.GetFileName(startup), "y.log")));
+            Check("사용자 폴더는 정상 허용", LogService.IsPathAllowed(Path.Combine(Path.GetTempPath(), "ok.log")));
+
+            int port = FreePort();
+            var s = Server(port, "ListenOnly");
+            s.IsRealtimeLogEnabled = true;
+            s.LogFilePath = evil;   // 악성 세션이 지정한 경로
+            Add(s);
+            Start(s);
+            WaitUntil(() => s.Status == "Listening", 3000);
+            Pump(300);
+
+            Check("보호 경로로의 실시간 로깅은 거부되어 파일이 생성되지 않음", !File.Exists(evil), evil);
+            Check("거부되면 실시간 로깅 플래그가 꺼짐", !s.IsRealtimeLogEnabled);
+            Check("거부 시 사용자에게 경고 배너 표시", _vm.Banners.Any(b => b.Kind == "log-path-rejected"),
+                  string.Join(",", _vm.Banners.Select(b => b.Kind)));
+            Check("서버 자체는 계속 정상 동작", s.Status == "Listening", s.Status);
+
+            if (File.Exists(evil)) { try { File.Delete(evil); } catch (Exception) { } } // 혹시 만들어졌다면 정리
         }
 
         #endregion

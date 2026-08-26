@@ -288,7 +288,17 @@ namespace SocketTestTool.Views
             }
 
             IsRealtimeLogEnabled = LogOnRadio.IsChecked == true;
-            if (IsRealtimeLogEnabled) LogFilePath = LogFilePathTextBox.Text;
+            if (IsRealtimeLogEnabled)
+            {
+                LogFilePath = LogFilePathTextBox.Text;
+
+                // [보안] 시스템·시작프로그램 등 보호된 위치는 로그 대상으로 허용하지 않습니다.
+                if (!LogService.IsPathAllowed(LogFilePath))
+                {
+                    ShowCheckResult(false, "로그 경로가 시스템·시작프로그램 등 보호된 위치입니다. 사용자 폴더로 바꾸세요.");
+                    return;
+                }
+            }
 
             // 수신 데이터 자동 전달 설정 검증
             IsForwardingEnabled = ForwardingCheckBox.IsChecked == true;

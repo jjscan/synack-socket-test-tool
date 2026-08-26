@@ -59,9 +59,23 @@ namespace SocketTestTool.Models
             // v2.0.1은 재설계 이후에 나온 '원래 되어야 했던 것'들만 고친 패치입니다.
             new ReleaseNote
             {
-                Version = "v2.0.1",
+                Version = "v2.0.2",
                 ReleaseDate = "2026-08-26",
                 IsCurrent = true,
+                Tagline = "보안 강화",
+                BugFixes =
+                {
+                    new ReleaseNoteItem("로그 경로 보안 강화",
+                        "신뢰할 수 없는 세션 파일이 시스템·시작프로그램 등 보호된 위치에 로그 파일을 만들 수 있던 문제 차단. 관리자 권한과 결합된 자동실행 지속성·권한 상승 경로를 막았습니다. 사용자 폴더로의 로그 저장은 그대로 동작합니다."),
+                    new ReleaseNoteItem("탐색기 열기 인자 처리 강화",
+                        "'폴더 열기' 동작에서 파일 경로를 문자열로 이어 붙이지 않고 인자 목록으로 전달하도록 변경.")
+                }
+            },
+
+            new ReleaseNote
+            {
+                Version = "v2.0.1",
+                ReleaseDate = "2026-08-26",
                 BugFixes =
                 {
                     new ReleaseNoteItem("다크 모드에서 메뉴가 보이지 않던 문제",
