@@ -27,7 +27,7 @@ namespace SocketTestTool.Models
         /// <summary>
         /// 로그의 부가적인 정보 메시지입니다. (예: 접속한 클라이언트 IP)
         /// </summary>
-        public string Message { get; set; }
+        public string? Message { get; set; }
 
         /// <summary>
         /// 원본 데이터의 바이트 길이입니다.
@@ -37,17 +37,17 @@ namespace SocketTestTool.Models
         /// <summary>
         /// 통신으로 주고받은 원본 바이트 배열 데이터입니다.
         /// </summary>
-        public byte[] Data { get; set; }
+        public byte[]? Data { get; set; }
 
         /// <summary>
         /// 원본 바이트 데이터를 UI에 선택된 인코딩으로 해석한 문자열입니다.
         /// </summary>
-        public string DecodedData { get; set; }
+        public string? DecodedData { get; set; }
 
         /// <summary>
         /// DecodedData에서 제어 문자를 [STX]와 같은 태그로 변환한, '기호 보기'용 문자열입니다.
         /// </summary>
-        public string RenderedData { get; set; }
+        public string? RenderedData { get; set; }
 
         #endregion
 
@@ -104,12 +104,12 @@ namespace SocketTestTool.Models
         /// 'Text' 보기에서 본문 칸에 들어갈 문자열입니다.
         /// 데이터가 있으면 해석된 문자열을, 없으면 시스템 메시지를 보여 줍니다.
         /// </summary>
-        public string PayloadText => string.IsNullOrEmpty(DecodedData) ? Message : DecodedData + TruncationNote;
+        public string PayloadText => string.IsNullOrEmpty(DecodedData) ? (Message ?? string.Empty) : DecodedData + TruncationNote;
 
         /// <summary>
         /// '기호' 보기에서 본문 칸에 들어갈 문자열입니다. 제어 문자가 [STX] 형태로 보입니다.
         /// </summary>
-        public string RenderedPayloadText => string.IsNullOrEmpty(RenderedData) ? Message : RenderedData + TruncationNote;
+        public string RenderedPayloadText => string.IsNullOrEmpty(RenderedData) ? (Message ?? string.Empty) : RenderedData + TruncationNote;
 
         /// <summary>
         /// 데이터 행에서, 본문과 별개로 덧붙는 부가 정보입니다.
@@ -117,7 +117,7 @@ namespace SocketTestTool.Models
         /// </summary>
         public string SideNote => string.IsNullOrEmpty(DecodedData) || string.IsNullOrEmpty(Message)
             ? string.Empty
-            : Message;
+            : Message!;
 
         #endregion
 

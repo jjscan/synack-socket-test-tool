@@ -26,25 +26,25 @@ namespace SocketTestTool.Views
         #region Fields
 
         private bool _isServerMode;
-        private readonly ObservableCollection<ConnectionModel> _allConnections;
-        private readonly ConnectionModel _editingConnection;
+        private readonly ObservableCollection<ConnectionModel>? _allConnections;
+        private readonly ConnectionModel? _editingConnection;
 
         #endregion
 
         #region Result Properties
 
-        public string IpAddress { get; private set; }
+        public string IpAddress { get; private set; } = string.Empty;
         public int Port { get; private set; }
-        public string ResponsePattern { get; private set; }
+        public string ResponsePattern { get; private set; } = string.Empty;
         public ObservableCollection<ResponseRule> Rules { get; set; }
-        public string ReplyMessage { get; private set; }
+        public string ReplyMessage { get; private set; } = string.Empty;
         public bool IsReplyEndless { get; private set; }
         public bool IsRealtimeLogEnabled { get; private set; }
-        public string LogFilePath { get; private set; }
+        public string LogFilePath { get; private set; } = string.Empty;
         public string EncodingName { get; private set; } = "ASCII";
         public int ReceiveTimeout { get; private set; }
         public bool IsForwardingEnabled { get; private set; }
-        public string ForwardIpAddress { get; private set; }
+        public string ForwardIpAddress { get; private set; } = string.Empty;
         public int ForwardPort { get; private set; }
 
         /// <summary>
@@ -57,7 +57,7 @@ namespace SocketTestTool.Views
 
         #region Constructor
 
-        public AddConnectionWindow(bool isServer, ConnectionModel existingConnection = null, ObservableCollection<ConnectionModel> allConnections = null)
+        public AddConnectionWindow(bool isServer, ConnectionModel? existingConnection = null, ObservableCollection<ConnectionModel>? allConnections = null)
         {
             InitializeComponent();
 
@@ -115,7 +115,7 @@ namespace SocketTestTool.Views
             LogFilePathTextBox.Text = existing.LogFilePath;
             LogOnRadio.IsChecked = existing.IsRealtimeLogEnabled;
 
-            SelectResponsePattern(existing.ResponsePattern);
+            SelectResponsePattern(existing.ResponsePattern ?? "Echo");
 
             if (existing.Manager is TcpServerManager manager)
             {
@@ -304,7 +304,7 @@ namespace SocketTestTool.Views
             IsForwardingEnabled = ForwardingCheckBox.IsChecked == true;
             if (IsForwardingEnabled)
             {
-                if (!IPAddress.TryParse(ForwardIpTextBox.Text, out IPAddress forwardIp) || Equals(forwardIp, IPAddress.Any))
+                if (!IPAddress.TryParse(ForwardIpTextBox.Text, out IPAddress? forwardIp) || Equals(forwardIp, IPAddress.Any))
                 {
                     ShowCheckResult(false, "자동 전달 대상 IP 주소가 올바르지 않습니다.");
                     return;

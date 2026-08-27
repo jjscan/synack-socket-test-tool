@@ -23,9 +23,9 @@ namespace SocketTestTool.Models
     /// </summary>
     public class ReleaseNote
     {
-        public string Version { get; set; }
-        public string ReleaseDate { get; set; }
-        public string Tagline { get; set; }
+        public string Version { get; set; } = "";
+        public string ReleaseDate { get; set; } = "";
+        public string? Tagline { get; set; }
         public bool IsCurrent { get; set; }
 
         public List<ReleaseNoteItem> Features { get; set; } = new List<ReleaseNoteItem>();

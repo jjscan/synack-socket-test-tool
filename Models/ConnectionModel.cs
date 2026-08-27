@@ -16,8 +16,8 @@ namespace SocketTestTool.Models
         #region Fields (Private Backing Fields)
 
         private int _seq;
-        private string _status;
-        private string _address;
+        private string? _status;
+        private string? _address;
         private long _bytesSent;
         private long _bytesReceived;
         private bool _isPeriodicSending;
@@ -39,12 +39,12 @@ namespace SocketTestTool.Models
         /// <summary>
         /// 연결 타입입니다. ("Server" 또는 "Client")
         /// </summary>
-        public string Type { get; set; }
+        public string? Type { get; set; }
 
         /// <summary>
         /// UI에 표시될 주소 문자열입니다. (예: "127.0.0.1:8080")
         /// </summary>
-        public string Address
+        public string? Address
         {
             get => _address;
             set { if (_address != value) { _address = value; OnPropertyChanged(); } }
@@ -53,7 +53,7 @@ namespace SocketTestTool.Models
         /// <summary>
         /// 현재 연결 상태입니다. (예: "Stopped", "Listening", "Connected")
         /// </summary>
-        public string Status
+        public string? Status
         {
             get => _status;
             set { if (_status != value) { _status = value; OnPropertyChanged(); } }
@@ -62,7 +62,7 @@ namespace SocketTestTool.Models
         /// <summary>
         /// 연결의 IP 주소입니다.
         /// </summary>
-        public string IpAddress { get; set; }
+        public string? IpAddress { get; set; }
 
         /// <summary>
         /// 연결의 포트 번호입니다.
@@ -72,7 +72,7 @@ namespace SocketTestTool.Models
         /// <summary>
         /// 서버의 기본 응답 패턴입니다. (예: "Echo", "SendOnce")
         /// </summary>
-        public string ResponsePattern { get; set; }
+        public string? ResponsePattern { get; set; }
 
         /// <summary>
         /// 서버의 규칙 기반 응답 목록입니다.
@@ -87,7 +87,7 @@ namespace SocketTestTool.Models
         /// <summary>
         /// '수신 후 응답' 패턴에서 사용할 응답 메시지입니다.
         /// </summary>
-        public string ReplyMessage { get; set; }
+        public string? ReplyMessage { get; set; }
 
         /// <summary>
         /// '수신 후 응답' 패턴이 지속적으로 응답할지 여부입니다.
@@ -116,7 +116,7 @@ namespace SocketTestTool.Models
         /// <summary>
         /// 수신 데이터를 자동 전달할 대상 서버의 IP 주소입니다.
         /// </summary>
-        public string ForwardIpAddress { get; set; }
+        public string? ForwardIpAddress { get; set; }
 
         /// <summary>
         /// 수신 데이터를 자동 전달할 대상 서버의 포트 번호입니다.
@@ -131,7 +131,7 @@ namespace SocketTestTool.Models
         /// <summary>
         /// 실시간 로그를 저장할 파일의 전체 경로입니다.
         /// </summary>
-        public string LogFilePath { get; set; }
+        public string? LogFilePath { get; set; }
 
         #endregion
 
@@ -151,13 +151,13 @@ namespace SocketTestTool.Models
         /// 실제 소켓 통신을 담당하는 Manager 객체입니다. (TcpServerManager 또는 TcpClientManager)
         /// </summary>
         [JsonIgnore]
-        public object Manager { get; set; }
+        public object? Manager { get; set; }
 
         /// <summary>
         /// 수신 데이터를 다른 서버로 전달하는 ForwardingClient 객체입니다. (전달 기능이 꺼져 있으면 null)
         /// </summary>
         [JsonIgnore]
-        public object Forwarder { get; set; }
+        public object? Forwarder { get; set; }
 
         /// <summary>
         /// 이 연결에 대한 로그 항목들을 담고 있는 컬렉션입니다.
@@ -214,23 +214,23 @@ namespace SocketTestTool.Models
             }
         }
 
-        private string _metaText;
+        private string? _metaText;
         /// <summary>
         /// 연결 카드 두 번째 줄에 표시되는 요약입니다. (예: "Echo · ASCII · 주기전송 1000ms")
         /// </summary>
         [JsonIgnore]
-        public string MetaText
+        public string? MetaText
         {
             get => _metaText;
             set { if (_metaText != value) { _metaText = value; OnPropertyChanged(); } }
         }
 
-        private string _errorText;
+        private string? _errorText;
         /// <summary>
         /// 연결 카드에 붉게 표시되는 오류 한 줄입니다. 오류가 없으면 비어 있습니다.
         /// </summary>
         [JsonIgnore]
-        public string ErrorText
+        public string? ErrorText
         {
             get => _errorText;
             set { if (_errorText != value) { _errorText = value; OnPropertyChanged(); } }
@@ -246,8 +246,8 @@ namespace SocketTestTool.Models
 
         #region INotifyPropertyChanged Implementation
 
-        public event PropertyChangedEventHandler PropertyChanged;
-        protected void OnPropertyChanged([CallerMemberName] string propertyName = null)
+        public event PropertyChangedEventHandler? PropertyChanged;
+        protected void OnPropertyChanged([CallerMemberName] string? propertyName = null)
         {
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
         }

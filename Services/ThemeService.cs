@@ -57,7 +57,7 @@ namespace SocketTestTool.Services
         /// <summary>
         /// 테마가 바뀌었을 때 발생합니다. ViewModel이 메뉴 체크 상태를 갱신하는 데 씁니다.
         /// </summary>
-        public static event Action ThemeChanged;
+        public static event Action? ThemeChanged;
 
         #endregion
 
@@ -148,7 +148,7 @@ namespace SocketTestTool.Services
                 if (!File.Exists(SettingsPath)) return AppTheme.System;
 
                 var saved = JsonConvert.DeserializeObject<Dictionary<string, string>>(File.ReadAllText(SettingsPath));
-                if (saved != null && saved.TryGetValue("theme", out string value) &&
+                if (saved != null && saved.TryGetValue("theme", out string? value) &&
                     Enum.TryParse(value, out AppTheme parsed))
                 {
                     return parsed;

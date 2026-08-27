@@ -10,12 +10,12 @@
         /// <summary>
         /// 클라이언트로부터 수신한 데이터에 포함되어 있는지 검사할 문자열입니다.
         /// </summary>
-        public string ReceiveData { get; set; }
+        public string? ReceiveData { get; set; }
 
         /// <summary>
         /// ReceiveData가 포함되어 있을 경우, 서버가 클라이언트에게 응답으로 보낼 문자열입니다.
         /// </summary>
-        public string SendData { get; set; }
+        public string? SendData { get; set; }
 
         #endregion
     }

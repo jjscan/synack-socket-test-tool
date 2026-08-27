@@ -83,7 +83,7 @@ namespace SocketTestTool.Services
                     }
 
                     // 지정한 경로의 폴더가 없으면 만듭니다. (경로에 폴더 부분이 있을 때만)
-                    string dir = Path.GetDirectoryName(filePath);
+                    string? dir = Path.GetDirectoryName(filePath);
                     if (!string.IsNullOrEmpty(dir)) Directory.CreateDirectory(dir);
 
                     // UTF-8 인코딩으로 파일을 열고, 기존 내용에 이어쓰기 모드(append: true)로 설정합니다.

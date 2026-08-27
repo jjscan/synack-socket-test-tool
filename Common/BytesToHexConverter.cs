@@ -19,7 +19,7 @@ namespace SocketTestTool.Common
         /// <param name="parameter">컨버터 파라미터입니다 (사용 안 함).</param>
         /// <param name="culture">문화권 정보입니다 (사용 안 함).</param>
         /// <returns>16진수 문자열로 변환된 결과를 반환합니다.</returns>
-        public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+        public object? Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
         {
             // 입력된 값이 byte[] 타입인지 확인합니다.
             if (value is byte[] bytes)
@@ -35,7 +35,7 @@ namespace SocketTestTool.Common
         /// <summary>
         /// 타겟(string)에서 소스(byte[])로 데이터 형식을 변환합니다. (One-Way 바인딩이므로 구현 불필요)
         /// </summary>
-        public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
+        public object? ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
         {
             // 이 프로그램에서는 UI에서 Hex 문자열을 직접 수정하여 원래 byte[]로 되돌릴 필요가 없으므로
             // ConvertBack 기능은 구현하지 않습니다.

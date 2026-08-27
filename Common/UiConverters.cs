@@ -44,7 +44,7 @@ namespace SocketTestTool.Common
     /// </summary>
     public class LogDirectionToBadgeConverter : IValueConverter
     {
-        public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+        public object? Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
         {
             if (value is LogDirection direction)
             {
@@ -58,7 +58,7 @@ namespace SocketTestTool.Common
             return "SYS";
         }
 
-        public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
+        public object? ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
             => throw new NotImplementedException();
     }
 
@@ -68,7 +68,7 @@ namespace SocketTestTool.Common
     /// </summary>
     public class LogDirectionToBrushConverter : IValueConverter
     {
-        public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+        public object? Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
         {
             var direction = value is LogDirection d ? d : LogDirection.System;
             string role = parameter as string ?? "Foreground";
@@ -92,7 +92,7 @@ namespace SocketTestTool.Common
             }
         }
 
-        public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
+        public object? ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
             => throw new NotImplementedException();
     }
 
@@ -102,7 +102,7 @@ namespace SocketTestTool.Common
     /// </summary>
     public class ConnectionTypeToBadgeConverter : IValueConverter
     {
-        public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+        public object? Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
         {
             bool isServer = (value as string) == "Server";
             switch (parameter as string)
@@ -113,7 +113,7 @@ namespace SocketTestTool.Common
             }
         }
 
-        public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
+        public object? ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
             => throw new NotImplementedException();
     }
 
@@ -123,7 +123,7 @@ namespace SocketTestTool.Common
     /// </summary>
     public class StatusToPillConverter : IValueConverter
     {
-        public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+        public object? Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
         {
             string status = value as string ?? "Stopped";
             bool isActive = status == "Listening" || status == "Connected";
@@ -142,7 +142,7 @@ namespace SocketTestTool.Common
             }
         }
 
-        public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
+        public object? ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
             => throw new NotImplementedException();
     }
 
@@ -151,7 +151,7 @@ namespace SocketTestTool.Common
     /// </summary>
     public class ByteCountToHumanConverter : IValueConverter
     {
-        public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+        public object? Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
         {
             double bytes = value is long l ? l : (value is int i ? i : 0);
 
@@ -160,7 +160,7 @@ namespace SocketTestTool.Common
             return $"{bytes / (1024 * 1024):0.0} MB";
         }
 
-        public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
+        public object? ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
             => throw new NotImplementedException();
     }
 
@@ -169,10 +169,10 @@ namespace SocketTestTool.Common
     /// </summary>
     public class StringToVisibilityConverter : IValueConverter
     {
-        public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+        public object? Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
             => string.IsNullOrWhiteSpace(value as string) ? Visibility.Collapsed : Visibility.Visible;
 
-        public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
+        public object? ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
             => throw new NotImplementedException();
     }
 
@@ -182,7 +182,7 @@ namespace SocketTestTool.Common
     /// </summary>
     public class EmptyCountToVisibilityConverter : IValueConverter
     {
-        public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+        public object? Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
         {
             int count = value is int i ? i : 0;
             bool isEmpty = count == 0;
@@ -190,7 +190,7 @@ namespace SocketTestTool.Common
             return isEmpty ? Visibility.Visible : Visibility.Collapsed;
         }
 
-        public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
+        public object? ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
             => throw new NotImplementedException();
     }
 
@@ -199,10 +199,10 @@ namespace SocketTestTool.Common
     /// </summary>
     public class InverseBooleanToVisibilityConverter : IValueConverter
     {
-        public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+        public object? Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
             => (value is bool b && b) ? Visibility.Collapsed : Visibility.Visible;
 
-        public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
+        public object? ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
             => throw new NotImplementedException();
     }
 
@@ -211,14 +211,14 @@ namespace SocketTestTool.Common
     /// </summary>
     public class StatusToOpacityConverter : IValueConverter
     {
-        public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+        public object? Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
         {
             string status = value as string ?? "Stopped";
             bool isActive = status == "Listening" || status == "Connected" || status == "Error";
             return isActive ? 1.0 : 0.72;
         }
 
-        public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
+        public object? ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
             => throw new NotImplementedException();
     }
 
@@ -227,16 +227,16 @@ namespace SocketTestTool.Common
     /// </summary>
     public class PathToFileNameConverter : IValueConverter
     {
-        public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+        public object? Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
         {
-            string path = value as string;
+            string? path = value as string;
             if (string.IsNullOrWhiteSpace(path)) return string.Empty;
 
             try { return System.IO.Path.GetFileName(path); }
             catch (ArgumentException) { return path; }
         }
 
-        public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
+        public object? ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
             => throw new NotImplementedException();
     }
 
@@ -246,7 +246,7 @@ namespace SocketTestTool.Common
     /// </summary>
     public class BannerSeverityToBrushConverter : IValueConverter
     {
-        public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+        public object? Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
         {
             var severity = value is BannerSeverity s ? s : BannerSeverity.Error;
             switch (parameter as string)
@@ -268,7 +268,7 @@ namespace SocketTestTool.Common
             }
         }
 
-        public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
+        public object? ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
             => throw new NotImplementedException();
     }
 }

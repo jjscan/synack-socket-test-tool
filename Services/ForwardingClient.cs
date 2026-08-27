@@ -48,8 +48,8 @@ namespace SocketTestTool.Services
         // 전송 대기 중인 데이터입니다. _queue 자체를 잠금 객체로 사용합니다.
         private readonly Queue<byte[]> _queue = new Queue<byte[]>();
 
-        private CancellationTokenSource _cancellationTokenSource;
-        private TcpClient _client;
+        private CancellationTokenSource? _cancellationTokenSource;
+        private TcpClient? _client;
         private bool _isRunning;
 
         // 큐가 가득 차서 버린 메시지 개수입니다. 로그를 도배하지 않도록 모아서 알립니다.
@@ -65,7 +65,7 @@ namespace SocketTestTool.Services
         /// <summary>
         /// 전달 상태(접속/끊김/유실 등)를 ViewModel의 로그로 올리기 위한 이벤트입니다.
         /// </summary>
-        public event Action<LogEntry> LogEntryReceived;
+        public event Action<LogEntry>? LogEntryReceived;
 
         /// <summary>
         /// 현재 대상 서버에 접속되어 있는지 여부입니다.
@@ -193,7 +193,7 @@ namespace SocketTestTool.Services
                         continue;
                     }
 
-                    byte[] data = Peek();
+                    byte[]? data = Peek();
                     if (data == null)
                     {
                         // 보낼 것이 없으면 짧게 쉽니다.
@@ -201,7 +201,16 @@ namespace SocketTestTool.Services
                         continue;
                     }
 
-                    var stream = _client.GetStream();
+                    // 위 IsPeerClosed() 검사를 지난 시점이라 _client는 살아 있지만,
+                    // 다른 스레드가 CloseClient()를 호출했을 수 있으므로 지역 변수로 한 번 잡아 둡니다.
+                    var client = _client;
+                    if (client == null)
+                    {
+                        CloseClient();
+                        continue;
+                    }
+
+                    var stream = client.GetStream();
                     await stream.WriteAsync(data, 0, data.Length, token).ConfigureAwait(false);
 
                     // 전송에 성공한 뒤에야 큐에서 실제로 빼냅니다.
@@ -303,7 +312,7 @@ namespace SocketTestTool.Services
             _client = null;
         }
 
-        private byte[] Peek()
+        private byte[]? Peek()
         {
             lock (_queue) { return _queue.Count > 0 ? _queue.Peek() : null; }
         }

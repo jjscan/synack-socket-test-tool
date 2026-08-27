@@ -20,10 +20,10 @@ namespace SocketTestTool.Services
     {
         #region Fields
 
-        private TcpListener _listener;
+        private TcpListener? _listener;
         private readonly List<TcpClient> _clients = new List<TcpClient>();
-        private CancellationTokenSource _cancellationTokenSource;
-        private System.Timers.Timer _periodicTimer;
+        private CancellationTokenSource? _cancellationTokenSource;
+        private System.Timers.Timer? _periodicTimer;
 
         // Stop()이 시작됐음을 알리는 플래그입니다.
         // 리스너를 닫으면 대기 중이던 Accept가 예외로 깨어나는데,
@@ -51,19 +51,19 @@ namespace SocketTestTool.Services
 
         #region Events & Properties
 
-        public event Action<LogEntry> LogEntryReceived;
-        public event Action<string> StatusChanged;
+        public event Action<LogEntry>? LogEntryReceived;
+        public event Action<string>? StatusChanged;
 
         /// <summary>
         /// 서버를 열지 못했을 때 발생합니다. (사용자에게 보여 줄 문구, 개발자용 원인, 소켓 오류 코드)
         /// 서비스는 UI를 직접 띄우지 않고 이 이벤트만 올립니다. 화면 표시는 ViewModel이 결정합니다.
         /// </summary>
-        public event Action<string, string, SocketError> StartFailed;
+        public event Action<string, string, SocketError>? StartFailed;
 
         public bool IsRunning { get; private set; }
         public string ResponsePattern { get; set; } = "Echo";
         public List<ResponseRule> Rules { get; set; } = new List<ResponseRule>();
-        public string ReplyMessage { get; set; }
+        public string? ReplyMessage { get; set; }
         public bool IsReplyEndless { get; set; }
         public Encoding CurrentEncoding { get; set; } = Encoding.UTF8;
         public bool IsRealtimeLogEnabled { get; set; }
@@ -258,8 +258,8 @@ namespace SocketTestTool.Services
         /// </summary>
         private async Task HandleClientAsync(TcpClient client, CancellationToken token)
         {
-            NetworkStream stream = null;
-            string clientIp = (client?.Client?.RemoteEndPoint as IPEndPoint)?.Address.ToString() ?? "Unknown IP";
+            NetworkStream? stream = null;
+            string clientIp = (client.Client?.RemoteEndPoint as IPEndPoint)?.Address.ToString() ?? "Unknown IP";
             bool hasRepliedOnce = false;
             string currentResponsePattern = ResponsePattern;
 
@@ -339,7 +339,7 @@ namespace SocketTestTool.Services
 
                         if (matchedRule != null)
                         {
-                            string parsedReply = AsciiTagParser.Parse(matchedRule.SendData);
+                            string parsedReply = AsciiTagParser.Parse(matchedRule.SendData ?? string.Empty);
                             byte[] sendBytes = CurrentEncoding.GetBytes(parsedReply);
                             await stream.WriteAsync(sendBytes, 0, sendBytes.Length, token).ConfigureAwait(false);
                             LogEntryReceived?.Invoke(new LogEntry { Timestamp = DateTime.Now, Direction = LogDirection.Sent, Message = $"Rule to {clientIp}", Data = sendBytes, Length = sendBytes.Length });

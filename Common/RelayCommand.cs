@@ -12,9 +12,9 @@ namespace SocketTestTool.Common
         #region Fields
 
         // Command가 실행할 실제 로직(메서드)을 저장하는 델리게이트입니다.
-        private readonly Action<object> _execute;
+        private readonly Action<object?> _execute;
         // Command의 실행 가능 여부를 판단하는 로직(메서드)을 저장하는 델리게이트입니다.
-        private readonly Predicate<object> _canExecute;
+        private readonly Predicate<object?>? _canExecute;
 
         #endregion
 
@@ -24,7 +24,7 @@ namespace SocketTestTool.Common
         /// 실행 가능 여부 판단 없이 항상 실행 가능한 Command를 생성합니다.
         /// </summary>
         /// <param name="execute">실행할 Action<object> 델리게이트입니다.</param>
-        public RelayCommand(Action<object> execute)
+        public RelayCommand(Action<object?> execute)
             : this(execute, null)
         {
         }
@@ -34,7 +34,7 @@ namespace SocketTestTool.Common
         /// </summary>
         /// <param name="execute">실행할 Action<object> 델리게이트입니다.</param>
         /// <param name="canExecute">실행 가능 여부를 판단할 Predicate<object> 델리게이트입니다.</param>
-        public RelayCommand(Action<object> execute, Predicate<object> canExecute)
+        public RelayCommand(Action<object?> execute, Predicate<object?>? canExecute)
         {
             _execute = execute ?? throw new ArgumentNullException(nameof(execute));
             _canExecute = canExecute;
@@ -47,7 +47,7 @@ namespace SocketTestTool.Common
         /// <summary>
         /// Command의 실행 가능 여부를 반환합니다. 이 결과는 UI 컨트롤의 IsEnabled 속성에 반영됩니다.
         /// </summary>
-        public bool CanExecute(object parameter)
+        public bool CanExecute(object? parameter)
         {
             // _canExecute 델리게이트가 없으면 무조건 true, 있으면 해당 델리게이트의 결과 반환
             return _canExecute == null || _canExecute(parameter);
@@ -57,7 +57,7 @@ namespace SocketTestTool.Common
         /// Command의 실행 가능 상태가 변경되었음을 UI에 알리는 이벤트입니다.
         /// WPF의 CommandManager.RequerySuggested 이벤트를 통해 UI 상태 변경 시 자동으로 CanExecute가 다시 호출되도록 합니다.
         /// </summary>
-        public event EventHandler CanExecuteChanged
+        public event EventHandler? CanExecuteChanged
         {
             add { CommandManager.RequerySuggested += value; }
             remove { CommandManager.RequerySuggested -= value; }
@@ -66,7 +66,7 @@ namespace SocketTestTool.Common
         /// <summary>
         /// Command의 실제 로직을 실행합니다.
         /// </summary>
-        public void Execute(object parameter)
+        public void Execute(object? parameter)
         {
             _execute(parameter);
         }

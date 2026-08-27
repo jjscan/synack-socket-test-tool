@@ -32,8 +32,8 @@ namespace SocketTestTool.ViewModels
     public class MainViewModel : INotifyPropertyChanged
     {
         #region INotifyPropertyChanged
-        public event PropertyChangedEventHandler PropertyChanged;
-        protected void OnPropertyChanged([CallerMemberName] string propertyName = null)
+        public event PropertyChangedEventHandler? PropertyChanged;
+        protected void OnPropertyChanged([CallerMemberName] string? propertyName = null)
         {
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
         }
@@ -57,11 +57,11 @@ namespace SocketTestTool.ViewModels
         /// </summary>
         public ObservableCollection<ConnectionModel> Connections { get; }
 
-        private ConnectionModel _selectedConnection;
+        private ConnectionModel? _selectedConnection;
         /// <summary>
         /// 좌측 ListView에서 현재 선택된 단일 연결 객체입니다. (단일 선택 시에만 유효)
         /// </summary>
-        public ConnectionModel SelectedConnection
+        public ConnectionModel? SelectedConnection
         {
             get => _selectedConnection;
             set
@@ -88,13 +88,13 @@ namespace SocketTestTool.ViewModels
         /// </summary>
         public ObservableCollection<object> SelectedItems { get; }
 
-        private string _sendText;
+        private string _sendText = string.Empty;
         /// <summary>
         /// '1회 전송' 텍스트 박스와 바인딩된 속성입니다.
         /// </summary>
         public string SendText { get => _sendText; set { _sendText = value; OnPropertyChanged(); UpdateSendTextByteCount(); } }
 
-        private string _periodicSendText;
+        private string _periodicSendText = string.Empty;
         /// <summary>
         /// '주기적 전송' 텍스트 박스와 바인딩된 속성입니다.
         /// </summary>
@@ -109,7 +109,7 @@ namespace SocketTestTool.ViewModels
         private string _intervalText = "1000";
         public string IntervalText { get => _intervalText; set { _intervalText = value; OnPropertyChanged(); } }
 
-        private string _searchText;
+        private string _searchText = string.Empty;
         public string SearchText { get => _searchText; set { _searchText = value; OnPropertyChanged(); } }
 
         /// <summary>
@@ -125,7 +125,7 @@ namespace SocketTestTool.ViewModels
         /// <summary>
         /// 창 하단 상태 표시줄의 연결 통계 정보입니다.
         /// </summary>
-        public string ConnectionStatsText { get; private set; }
+        public string ConnectionStatsText { get; private set; } = string.Empty;
 
         #endregion
 
@@ -343,9 +343,9 @@ namespace SocketTestTool.ViewModels
         /// 'Add Server' 커맨드가 실행될 때 호출됩니다.
         /// AddConnectionWindow를 서버 모드로 열고, 결과에 따라 새 서버 ConnectionModel을 생성하여 목록에 추가합니다.
         /// </summary>
-        private void ExecuteAddServer(object param)
+        private void ExecuteAddServer(object? param)
         {
-            var dialog = new AddConnectionWindow(isServer: true, null, Connections);
+            var dialog = new AddConnectionWindow(isServer: true, existingConnection: null, allConnections: Connections);
             if (dialog.ShowDialog() == true) AddConnectionFromDialog(dialog);
         }
 
@@ -408,9 +408,9 @@ namespace SocketTestTool.ViewModels
         /// 'Add Client' 커맨드가 실행될 때 호출됩니다.
         /// AddConnectionWindow를 클라이언트 모드로 열고, 결과에 따라 새 클라이언트 ConnectionModel을 생성하여 목록에 추가합니다.
         /// </summary>
-        private void ExecuteAddClient(object param)
+        private void ExecuteAddClient(object? param)
         {
-            var dialog = new AddConnectionWindow(isServer: false, null, Connections);
+            var dialog = new AddConnectionWindow(isServer: false, existingConnection: null, allConnections: Connections);
             if (dialog.ShowDialog() == true) AddConnectionFromDialog(dialog);
         }
 
@@ -418,7 +418,7 @@ namespace SocketTestTool.ViewModels
         /// 'Edit' 커맨드가 실행될 때 호출됩니다.
         /// 선택된 연결의 이전 상태를 기억한 후, 설정을 수정하고 원래 실행 중이었다면 다시 시작합니다.
         /// </summary>
-        private void ExecuteEdit(object param)
+        private void ExecuteEdit(object? param)
         {
             var selectedConnection = SelectedConnection;
             if (selectedConnection == null) return;
@@ -500,7 +500,7 @@ namespace SocketTestTool.ViewModels
         /// 'Remove' 커맨드가 실행될 때 호출됩니다.
         /// 선택된 모든 연결을 중지하고 목록에서 제거합니다.
         /// </summary>
-        private void ExecuteRemove(object param)
+        private void ExecuteRemove(object? param)
         {
             if (SelectedItems == null || SelectedItems.Count == 0) return;
             foreach (var selected in SelectedItems.OfType<ConnectionModel>().ToList())
@@ -511,7 +511,7 @@ namespace SocketTestTool.ViewModels
         /// 'Send Once' 커맨드가 실행될 때 호출됩니다.
         /// 선택된 연결로 데이터를 1회 전송합니다.
         /// </summary>
-        private async void ExecuteSend(object param)
+        private async void ExecuteSend(object? param)
         {
             if (SelectedConnection == null || string.IsNullOrEmpty(SendText)) return;
             var encoding = GetEncodingByName(SelectedConnection.EncodingName);
@@ -524,7 +524,7 @@ namespace SocketTestTool.ViewModels
         /// 'Start/Stop Periodic' 커맨드가 실행될 때 호출됩니다.
         /// 주기적 전송 상태를 토글(시작/중지)합니다.
         /// </summary>
-        private void ExecutePeriodicSend(object param)
+        private void ExecutePeriodicSend(object? param)
         {
             if (SelectedConnection == null) return;
             if (!SelectedConnection.IsPeriodicSending)
@@ -548,7 +548,7 @@ namespace SocketTestTool.ViewModels
         /// 'Clear Log' 커맨드가 실행될 때 호출됩니다.
         /// 선택된 연결의 로그와 통계 정보를 초기화합니다.
         /// </summary>
-        private void ExecuteClearLog(object param)
+        private void ExecuteClearLog(object? param)
         {
             if (SelectedConnection == null) return;
             SelectedConnection.Logs.Clear();
@@ -560,7 +560,7 @@ namespace SocketTestTool.ViewModels
         /// 'Save Session' 커맨드가 실행될 때 호출됩니다.
         /// 현재 연결 목록을 JSON 파일로 저장합니다.
         /// </summary>
-        private void ExecuteSaveSession(object param)
+        private void ExecuteSaveSession(object? param)
         {
             var sfd = new SaveFileDialog { Filter = "JSON File (*.json)|*.json", Title = "Save Session As..." };
             if (sfd.ShowDialog() != true) return;
@@ -599,7 +599,7 @@ namespace SocketTestTool.ViewModels
         /// 'Load Session' 커맨드가 실행될 때 호출됩니다.
         /// JSON 파일에서 연결 목록을 불러옵니다.
         /// </summary>
-        private void ExecuteLoadSession(object param)
+        private void ExecuteLoadSession(object? param)
         {
             var ofd = new OpenFileDialog { Filter = "JSON File (*.json)|*.json", Title = "Load Session" };
             if (ofd.ShowDialog() == true) LoadSessionFile(ofd.FileName);
@@ -673,10 +673,10 @@ namespace SocketTestTool.ViewModels
         /// 'Save Log' 커맨드가 실행될 때 호출됩니다.
         /// 선택된 연결의 현재 로그를 텍스트 파일로 저장합니다.
         /// </summary>
-        private void ExecuteSaveLog(object param)
+        private void ExecuteSaveLog(object? param)
         {
             if (SelectedConnection == null) return;
-            var sfd = new SaveFileDialog { FileName = $"SocketLog_{SelectedConnection.Address.Replace(":", "_")}_{DateTime.Now:yyyyMMdd_HHmmss}.txt", Filter = "Text File (*.txt)|*.txt", Title = "Save Log As..." };
+            var sfd = new SaveFileDialog { FileName = $"SocketLog_{(SelectedConnection.Address ?? "unknown").Replace(":", "_")}_{DateTime.Now:yyyyMMdd_HHmmss}.txt", Filter = "Text File (*.txt)|*.txt", Title = "Save Log As..." };
             if (sfd.ShowDialog() == true)
             {
                 try
@@ -693,7 +693,7 @@ namespace SocketTestTool.ViewModels
         /// 'Start' 커맨드가 실행될 때 호출됩니다.
         /// 선택된 모든 연결 중 'Stopped' 상태인 것들을 시작합니다.
         /// </summary>
-        private void ExecuteStartConnection(object param)
+        private void ExecuteStartConnection(object? param)
         {
             if (SelectedItems == null || SelectedItems.Count == 0) return;
             foreach (var selected in SelectedItems.OfType<ConnectionModel>())
@@ -707,7 +707,7 @@ namespace SocketTestTool.ViewModels
         /// 'Stop' 커맨드가 실행될 때 호출됩니다.
         /// 선택된 모든 연결 중 활성화 상태인 것들을 중지합니다.
         /// </summary>
-        private void ExecuteStopConnection(object param)
+        private void ExecuteStopConnection(object? param)
         {
             if (SelectedItems == null || SelectedItems.Count == 0) return;
             foreach (var selected in SelectedItems.OfType<ConnectionModel>())
@@ -729,17 +729,17 @@ namespace SocketTestTool.ViewModels
         /// <summary>
         /// 정확히 하나의 항목이 선택되었을 때만 true를 반환합니다. (Edit, Send 등 단일 대상 커맨드용)
         /// </summary>
-        private bool CanExecuteOnSingleSelected(object param) => SelectedItems?.Count == 1;
+        private bool CanExecuteOnSingleSelected(object? param) => SelectedItems?.Count == 1;
 
         /// <summary>
         /// 하나 이상의 항목이 선택되었을 때 true를 반환합니다. (Remove 등 다중 대상 커맨드용)
         /// </summary>
-        private bool CanExecuteOnMultiSelected(object param) => SelectedItems?.Count > 0;
+        private bool CanExecuteOnMultiSelected(object? param) => SelectedItems?.Count > 0;
 
         /// <summary>
         /// 선택된 항목들 중 하나라도 시작 가능한 상태("Stopped", "Ready", "Error")일 때 true를 반환합니다.
         /// </summary>
-        private bool CanExecuteStart(object param)
+        private bool CanExecuteStart(object? param)
         {
             if (SelectedItems == null || SelectedItems.Count == 0) return false;
             // OfType<ConnectionModel>() : SelectedItems가 object 컬렉션이므로, ConnectionModel 타입만 필터링합니다.
@@ -750,7 +750,7 @@ namespace SocketTestTool.ViewModels
         /// <summary>
         /// 선택된 항목들 중 하나라도 중지 가능한 상태("Connected", "Listening")일 때 true를 반환합니다.
         /// </summary>
-        private bool CanExecuteStop(object param)
+        private bool CanExecuteStop(object? param)
         {
             if (SelectedItems == null || SelectedItems.Count == 0) return false;
             return SelectedItems.OfType<ConnectionModel>().Any(conn => conn.Status == "Connected" || conn.Status == "Listening" || conn.Status == "Starting");
@@ -759,7 +759,7 @@ namespace SocketTestTool.ViewModels
         /// <summary>
         /// 단일 선택된 항목이 활성화 상태("Connected", "Listening")일 때 true를 반환합니다.
         /// </summary>
-        private bool CanExecuteWhenActive(object param)
+        private bool CanExecuteWhenActive(object? param)
         {
             if (SelectedConnection == null) return false; // SelectedConnection은 단일 선택 시에만 유효
             return SelectedConnection.Status == "Connected" || SelectedConnection.Status == "Listening";
@@ -793,7 +793,7 @@ namespace SocketTestTool.ViewModels
         /// UI 업데이트 타이머의 Tick 이벤트 핸들러입니다.
         /// 로그 큐에 쌓인 로그들을 UI에 일괄적으로 추가합니다.
         /// </summary>
-        private void UiUpdateTimer_Tick(object sender, EventArgs e)
+        private void UiUpdateTimer_Tick(object? sender, EventArgs e)
         {
             if (_logQueue.IsEmpty) return;
             while (_logQueue.TryDequeue(out var tuple))
@@ -830,7 +830,7 @@ namespace SocketTestTool.ViewModels
         /// Connections 컬렉션이 변경될 때 호출됩니다.
         /// Seq 번호 재정렬, 통계 업데이트, PropertyChanged 이벤트 구독/해지를 처리합니다.
         /// </summary>
-        private void Connections_CollectionChanged(object sender, NotifyCollectionChangedEventArgs e)
+        private void Connections_CollectionChanged(object? sender, NotifyCollectionChangedEventArgs e)
         {
             UpdateConnectionStats();
             ReorderSequence();
@@ -841,7 +841,7 @@ namespace SocketTestTool.ViewModels
         /// <summary>
         /// Connections 컬렉션에 포함된 개별 ConnectionModel의 속성이 변경될 때 호출됩니다.
         /// </summary>
-        private void Connection_PropertyChanged(object sender, PropertyChangedEventArgs e)
+        private void Connection_PropertyChanged(object? sender, PropertyChangedEventArgs e)
         {
             // 연결 상태가 변경되면 통계를 다시 계산합니다.
             if (e.PropertyName == nameof(ConnectionModel.Status))
@@ -861,7 +861,7 @@ namespace SocketTestTool.ViewModels
         /// <summary>
         /// 현재 선택된 ConnectionModel의 속성이 변경될 때 호출됩니다.
         /// </summary>
-        private void SelectedConnection_PropertyChanged(object sender, PropertyChangedEventArgs e)
+        private void SelectedConnection_PropertyChanged(object? sender, PropertyChangedEventArgs e)
         {
             // 인코딩 이름이 변경되면 텍스트 박스의 바이트 카운트를 다시 계산합니다.
             if (e.PropertyName == nameof(ConnectionModel.EncodingName))
@@ -874,7 +874,7 @@ namespace SocketTestTool.ViewModels
         /// <summary>
         /// 'Help' 메뉴의 'Version History' 커맨드가 실행될 때 호출됩니다.
         /// </summary>
-        private void ExecuteShowVersionHistory(object param)
+        private void ExecuteShowVersionHistory(object? param)
         {
             var versionWindow = new VersionHistoryWindow();
             versionWindow.Owner = Application.Current.MainWindow; // 부모 창 설정
@@ -1002,7 +1002,7 @@ namespace SocketTestTool.ViewModels
             {
                 var serverManager = new TcpServerManager
                 {
-                    ResponsePattern = conn.ResponsePattern,
+                    ResponsePattern = conn.ResponsePattern ?? "Echo",
                     Rules = conn.Rules,
                     ReplyMessage = conn.ReplyMessage,
                     IsReplyEndless = conn.IsReplyEndless,
@@ -1021,7 +1021,7 @@ namespace SocketTestTool.ViewModels
 
                 // Task.Run으로 감싸서 소켓 바인딩과 Accept 루프가 UI 스레드에서 시작되지 않도록 합니다.
                 // (UI 스레드에서 시작하면 이후의 모든 await 재개 지점이 UI 스레드로 돌아와 화면이 멈춥니다.)
-                _ = Task.Run(() => serverManager.Start(conn.IpAddress, conn.Port));
+                _ = Task.Run(() => serverManager.Start(conn.IpAddress ?? "0.0.0.0", conn.Port));
             }
             else if (conn.Type == "Client")
             {
@@ -1039,7 +1039,7 @@ namespace SocketTestTool.ViewModels
                         OnClientConnectionFailed(conn, message, isConnectFailure)));
 
                 // 서버와 같은 이유로, 접속 시도와 수신 루프를 UI 스레드 밖에서 시작합니다.
-                _ = Task.Run(() => clientManager.Connect(conn.IpAddress, conn.Port));
+                _ = Task.Run(() => clientManager.Connect(conn.IpAddress ?? "127.0.0.1", conn.Port));
             }
         }
 
@@ -1168,7 +1168,7 @@ namespace SocketTestTool.ViewModels
         /// <summary>
         /// 연결 카드 두 번째 줄에 보여 줄 요약 문자열을 다시 만듭니다.
         /// </summary>
-        private void RefreshConnectionMeta(ConnectionModel conn)
+        private void RefreshConnectionMeta(ConnectionModel? conn)
         {
             if (conn == null) return;
 
@@ -1228,7 +1228,7 @@ namespace SocketTestTool.ViewModels
         /// <summary>
         /// 배너 한 건을 닫습니다.
         /// </summary>
-        private void DismissBanner(BannerItem banner)
+        private void DismissBanner(BannerItem? banner)
         {
             if (banner != null) Banners.Remove(banner);
         }
@@ -1343,9 +1343,9 @@ namespace SocketTestTool.ViewModels
         /// <summary>
         /// 빈 상태 화면의 '최근:' 항목을 눌렀을 때 해당 세션 파일을 불러옵니다.
         /// </summary>
-        private void ExecuteOpenRecentSession(object param)
+        private void ExecuteOpenRecentSession(object? param)
         {
-            string path = param as string;
+            string? path = param as string;
             if (string.IsNullOrWhiteSpace(path) || !File.Exists(path)) return;
             LoadSessionFile(path);
         }
@@ -1353,7 +1353,7 @@ namespace SocketTestTool.ViewModels
         /// <summary>
         /// 메뉴에서 테마를 골랐을 때 호출됩니다.
         /// </summary>
-        private void ExecuteSetTheme(object param)
+        private void ExecuteSetTheme(object? param)
         {
             if (Enum.TryParse(param as string, out AppTheme theme))
             {
@@ -1374,9 +1374,9 @@ namespace SocketTestTool.ViewModels
         /// <summary>
         /// 제어 문자 칩을 눌렀을 때, 현재 활성화된 입력 상자 끝에 태그를 덧붙입니다.
         /// </summary>
-        private void ExecuteInsertControlCharacter(object param)
+        private void ExecuteInsertControlCharacter(object? param)
         {
-            string tag = param as string;
+            string? tag = param as string;
             if (string.IsNullOrEmpty(tag)) return;
 
             if (IsPeriodicMode) PeriodicSendText = (PeriodicSendText ?? string.Empty) + tag;
@@ -1410,12 +1410,12 @@ namespace SocketTestTool.ViewModels
         /// <summary>
         /// UI의 메뉴에 표시될 텍스트입니다. (예: "[STX] Start of Text")
         /// </summary>
-        public string Name { get; set; }
+        public string Name { get; set; } = "";
 
         /// <summary>
         /// 메뉴 항목을 클릭했을 때 텍스트 박스에 실제 삽입될 태그 문자열입니다. (예: "[STX]")
         /// </summary>
-        public string Tag { get; set; }
+        public string Tag { get; set; } = "";
 
         /// <summary>
         /// 컴포저의 칩 버튼에 표시될 짧은 이름입니다. (예: "STX")

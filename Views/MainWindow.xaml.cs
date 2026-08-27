@@ -31,7 +31,7 @@ namespace SocketTestTool
         /// <summary>
         /// 현재 DataContext를 MainViewModel로 얻습니다. (없으면 null)
         /// </summary>
-        private MainViewModel ViewModel => this.DataContext as MainViewModel;
+        private MainViewModel? ViewModel => this.DataContext as MainViewModel;
 
         private void ConnectionListView_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
@@ -46,11 +46,11 @@ namespace SocketTestTool
             }
 
             // 선택이 바뀌면 로그 목록도 통째로 바뀌므로 검색 필터와 개수를 다시 적용합니다.
-            Dispatcher.BeginInvoke(new System.Action(() => FilterLogs(ViewModel?.SearchText)),
+            Dispatcher.BeginInvoke(new System.Action(() => FilterLogs(ViewModel?.SearchText ?? string.Empty)),
                                    DispatcherPriority.Background);
         }
 
-        private void Logs_CollectionChanged(object sender, NotifyCollectionChangedEventArgs e)
+        private void Logs_CollectionChanged(object? sender, NotifyCollectionChangedEventArgs e)
         {
             if (e.Action != NotifyCollectionChangedAction.Add) return;
 
@@ -72,7 +72,7 @@ namespace SocketTestTool
 
         private void SearchTextBox_TextChanged(object sender, TextChangedEventArgs e)
         {
-            FilterLogs(ViewModel?.SearchText);
+            FilterLogs(ViewModel?.SearchText ?? string.Empty);
         }
 
         /// <summary>

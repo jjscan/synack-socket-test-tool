@@ -18,10 +18,10 @@ namespace SocketTestTool.Services
     {
         #region Fields
 
-        private TcpClient _client;
-        private NetworkStream _stream;
-        private CancellationTokenSource _cancellationTokenSource;
-        private System.Timers.Timer _periodicTimer;
+        private TcpClient? _client;
+        private NetworkStream? _stream;
+        private CancellationTokenSource? _cancellationTokenSource;
+        private System.Timers.Timer? _periodicTimer;
 
         #endregion
 
@@ -30,18 +30,18 @@ namespace SocketTestTool.Services
         /// <summary>
         /// 로그 항목이 발생했을 때 ViewModel에 알리기 위한 이벤트입니다.
         /// </summary>
-        public event Action<LogEntry> LogEntryReceived;
+        public event Action<LogEntry>? LogEntryReceived;
 
         /// <summary>
         /// 연결 상태가 변경되었을 때 ViewModel에 알리기 위한 이벤트입니다.
         /// </summary>
-        public event Action<string> StatusChanged;
+        public event Action<string>? StatusChanged;
 
         /// <summary>
         /// 접속에 실패했거나 연결이 예기치 않게 끊겼을 때 발생합니다.
         /// (사용자에게 보여 줄 문구, 접속 실패인지 여부)
         /// </summary>
-        public event Action<string, bool> ConnectionFailed;
+        public event Action<string, bool>? ConnectionFailed;
 
         /// <summary>
         /// 현재 서버에 연결되어 있는지 여부를 나타냅니다.
@@ -51,7 +51,7 @@ namespace SocketTestTool.Services
         /// <summary>
         /// 이 클라이언트가 사용할 인코딩 방식입니다. ViewModel에서 설정합니다.
         /// </summary>
-        public Encoding CurrentEncoding { get; set; }
+        public Encoding CurrentEncoding { get; set; } = Encoding.ASCII;
 
         /// <summary>
         /// 실시간 로그 파일 저장 기능 활성화 여부입니다. ViewModel에서 설정합니다.
@@ -119,9 +119,12 @@ namespace SocketTestTool.Services
             }
             try
             {
+                var stream = _stream;
+                if (stream == null) return; // Disconnect()와 겹친 경우
+
                 string parsedMessage = AsciiTagParser.Parse(message);
                 byte[] data = encoding.GetBytes(parsedMessage);
-                await _stream.WriteAsync(data, 0, data.Length).ConfigureAwait(false);
+                await stream.WriteAsync(data, 0, data.Length).ConfigureAwait(false);
                 LogEntryReceived?.Invoke(new LogEntry { Timestamp = DateTime.Now, Direction = LogDirection.Sent, Message = "", Data = data, Length = data.Length });
             }
             catch (Exception ex)
@@ -167,10 +170,13 @@ namespace SocketTestTool.Services
         {
             try
             {
+                var stream = _stream;
+                if (stream == null) return;
+
                 byte[] buffer = new byte[4096]; // 4KB 버퍼
                 while (!token.IsCancellationRequested)
                 {
-                    int bytesRead = await _stream.ReadAsync(buffer, 0, buffer.Length, token).ConfigureAwait(false);
+                    int bytesRead = await stream.ReadAsync(buffer, 0, buffer.Length, token).ConfigureAwait(false);
                     if (bytesRead == 0)
                     {
                         // 서버가 정상적으로 연결을 종료한 경우
