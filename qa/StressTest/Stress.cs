@@ -54,6 +54,8 @@ namespace Stress
             Run("6. 자동 전달 큐 상한 (대상 다운)", ForwardingBackpressure);
             Run("7. 연결 수 확장 — 자원 한계 탐색", ScaleOut);
             Run("8. 악의적 무한 스트림 (수신 누적 상한)", MaliciousFlood);
+            Run("8-2. 전달 큐 바이트 상한 (대상 다운 + 큰 프레임)", ForwardingByteCap);
+            Run("8-3. 접속 폭주 상한", ConnectionFlood);
             Run("9. 정리 후 자원 회수", Recovery);
 
             var final = Measure();
@@ -596,6 +598,137 @@ namespace Stress
                 Check("공격 후에도 새 클라이언트가 정상 접속·전송", ok.Connect("127.0.0.1", port));
                 var t = ok.BlastAsync(Encoding.ASCII.GetBytes("STILL-ALIVE"), 1);
                 WaitUntil(() => t.IsCompleted && s.BytesReceived > 0, 5000);
+            }
+        }
+
+        #endregion
+
+        #region 8-2. 전달 큐 바이트 상한
+
+        /// <summary>
+        /// [보안] 자동 전달 대상이 죽어 있는 동안 큰 프레임이 계속 들어오는 상황입니다.
+        /// 큐가 '개수(1000건)'로만 제한되면 큰 프레임 1,000건이 수 GB를 붙들 수 있습니다.
+        /// 바이트 상한(MaxQueuedBytes)이 동작하면 메모리가 제한된 범위에 머물러야 합니다.
+        /// </summary>
+        private static void ForwardingByteCap()
+        {
+            // 아무도 듣지 않는 포트를 전달 대상으로 지정해, 큐가 계속 쌓이게 만듭니다.
+            int deadPort = FreePort();
+
+            int port = FreePort();
+            var s = Server(port);
+            s.IsForwardingEnabled = true;
+            s.ForwardIpAddress = "127.0.0.1";
+            s.ForwardPort = deadPort;
+            s.ReceiveTimeout = 0; // 조각 합치기 없이 들어오는 대로 한 건씩 처리
+            _vm.Connections.Add(s);
+            _vm.SelectedConnection = s;
+            _vm.SelectedItems.Clear();
+            _vm.SelectedItems.Add(s);
+            _vm.StartConnectionCommand.Execute(null);
+            WaitUntil(() => s.Status == "Listening", 5000);
+
+            var before = Measure();
+            long peak = before.ProcessMb;
+
+            // 256 KB짜리 프레임을 2,000건 보냅니다.
+            // 바이트 상한이 없으면 큐가 최대 1,000건 × 256 KB = 약 256 MB를 붙들고,
+            // 프레임이 더 크면 그대로 비례해 커집니다.
+            var chunk = new byte[256 * 1024];
+            new Random(11).NextBytes(chunk);
+
+            using (var b = new Blaster())
+            {
+                Check("부하 클라이언트 접속", b.Connect("127.0.0.1", port));
+
+                var t = b.BlastAsync(chunk, 2000);
+                var end = DateTime.Now.AddSeconds(15);
+                while (DateTime.Now < end && !t.IsCompleted)
+                {
+                    Pump(200);
+                    long cur = Measure().ProcessMb;
+                    if (cur > peak) peak = cur;
+                    if (cur - before.ProcessMb > 1024)
+                    {
+                        Note("메모리 1 GB 이상 증가로 조기 중단 (바이트 상한 미동작 의심).");
+                        break;
+                    }
+                }
+            }
+
+            Pump(500);
+            GC.Collect();
+            GC.WaitForPendingFinalizers();
+            GC.Collect();
+            Pump(300);
+            var after = Measure();
+
+            long grew = peak - before.ProcessMb;
+            Note($"전달 대상이 죽은 채 256 KB × 2,000건 유입. 메모리 최고치 +{grew} MB");
+            Note("전: " + before);
+            Note("후: " + after);
+
+            Check("전달 큐가 바이트 상한 안에 머무름 (최고치 증가 < 512 MB)", grew < 512, $"+{grew} MB");
+            Check("서버가 계속 Listening", s.Status == "Listening", s.Status);
+            Check("앱이 살아 있고 UI 응답", _w.IsVisible && _probe.MaxMs < 5000, $"UI {_probe.MaxMs:0} ms");
+            Check("공격 후 메모리 회수 (기준 대비 < 300 MB)",
+                  after.ProcessMb - before.ProcessMb < 300, $"{before.ProcessMb} -> {after.ProcessMb} MB");
+        }
+
+        #endregion
+
+        #region 8-3. 접속 폭주
+
+        /// <summary>
+        /// [보안] 데이터는 보내지 않고 접속만 반복하는 공격입니다.
+        /// 동시 접속 상한(MaxConcurrentClients)이 없으면 접속마다 버퍼와 작업이 붙어 자원이 고갈됩니다.
+        /// 상한이 동작하면 초과분은 거부되고 서버는 계속 살아 있어야 합니다.
+        /// </summary>
+        private static void ConnectionFlood()
+        {
+            var s = StartServer(out int port);
+            var before = Measure();
+            var held = new List<Blaster>();
+
+            try
+            {
+                // 상한(512)을 넘겨 600개까지 붙여 봅니다.
+                int connected = 0;
+                for (int i = 0; i < 600; i++)
+                {
+                    var b = new Blaster();
+                    if (b.Connect("127.0.0.1", port, 1500)) connected++;
+                    held.Add(b);
+
+                    if (i % 100 == 0) Pump(50);
+                }
+                Pump(1500);
+
+                var during = Measure();
+                Note($"600회 접속 시도, TCP 수준 성공 {connected}회");
+                Note("폭주 중: " + during);
+
+                Check("접속 폭주에도 서버가 계속 Listening", s.Status == "Listening", s.Status);
+                Check("접속 폭주 중 앱이 살아 있음", _w.IsVisible);
+                Check("접속 폭주 중 UI 응답 유지 (< 5초)", _probe.MaxMs < 5000, $"최대 {_probe.MaxMs:0} ms");
+                Check("접속 폭주에도 메모리가 제한적 (< 400 MB 증가)",
+                      during.ProcessMb - before.ProcessMb < 400,
+                      $"{before.ProcessMb} -> {during.ProcessMb} MB");
+                Check("상한 초과분이 거부되어 로그에 남음",
+                      s.Logs.Any(l => (l.Message ?? "").Contains("Connection refused")),
+                      "refused 로그 " + s.Logs.Count(l => (l.Message ?? "").Contains("Connection refused")) + "건");
+            }
+            finally
+            {
+                foreach (var b in held) b.Dispose();
+            }
+
+            Pump(1500);
+
+            // 폭주가 끝나면 다시 정상적으로 받아야 합니다.
+            using (var ok = new Blaster())
+            {
+                Check("폭주 종료 후 새 클라이언트가 정상 접속", ok.Connect("127.0.0.1", port, 3000));
             }
         }
 

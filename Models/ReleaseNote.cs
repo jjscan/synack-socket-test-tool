@@ -59,9 +59,25 @@ namespace SocketTestTool.Models
             // v2.0.1은 재설계 이후에 나온 '원래 되어야 했던 것'들만 고친 패치입니다.
             new ReleaseNote
             {
-                Version = "v2.0.3",
+                Version = "v2.0.4",
                 ReleaseDate = "2026-08-26",
                 IsCurrent = true,
+                Tagline = "보안 강화",
+                BugFixes =
+                {
+                    new ReleaseNoteItem("자동 전달 대기 큐 메모리 상한 추가",
+                        "전달 대상이 꺼져 있을 때 대기 큐가 '건수(1,000건)'로만 제한돼, 큰 데이터가 계속 들어오면 수 GB를 붙들 수 있던 문제 수정. 총 용량(64 MB) 상한을 함께 적용해 오래된 것부터 버립니다."),
+                    new ReleaseNoteItem("동시 접속 수 제한",
+                        "데이터 없이 접속만 반복하는 공격으로 자원이 고갈될 수 있던 문제 수정. 서버당 동시 접속을 512개로 제한하고, 초과분은 해당 접속만 거부하며 서버는 계속 동작합니다."),
+                    new ReleaseNoteItem("연결 삭제 시 통계 메모리 누수",
+                        "연결을 지우거나 세션을 바꿔도 처리량 계산용 내부 데이터가 남아 조금씩 쌓이던 문제 수정.")
+                }
+            },
+
+            new ReleaseNote
+            {
+                Version = "v2.0.3",
+                ReleaseDate = "2026-08-26",
                 Tagline = "보안 강화",
                 BugFixes =
                 {

@@ -39,6 +39,11 @@ namespace SocketTestTool.Services
         // 상한에 닿으면 거기까지를 한 프레임으로 처리한 뒤 계속 수신합니다.
         private const int MaxAccumulatedBytes = 16 * 1024 * 1024;
 
+        // [보안] 서버 하나가 동시에 받아들이는 최대 클라이언트 수입니다. (CWE-410 방지)
+        // 이 도구의 정상 사용(장비 몇 대를 붙여 보는 것)보다 훨씬 넉넉하며,
+        // 접속만 반복하는 공격이 메모리·스레드풀을 고갈시키지 못하게 막습니다.
+        private const int MaxConcurrentClients = 512;
+
         // 수신 대기 타임아웃 (기본값 300ms, 데이터가 끊겨 들어올 때 기다리는 시간)
         public int ReceiveTimeout { get; set; } = 300;
 
@@ -88,9 +93,33 @@ namespace SocketTestTool.Services
                 while (!_cancellationTokenSource.Token.IsCancellationRequested)
                 {
                     TcpClient client = await _listener.AcceptTcpClientAsync().ConfigureAwait(false);
-                    lock (_clients) { _clients.Add(client); }
+                    if (client == null) continue; // 실제로는 발생하지 않지만, 이후 코드를 단순하게 유지합니다.
 
-                    string clientIp = (client?.Client?.RemoteEndPoint as IPEndPoint)?.Address.ToString() ?? "Unknown IP";
+                    string clientIp = (client.Client?.RemoteEndPoint as IPEndPoint)?.Address.ToString() ?? "Unknown IP";
+
+                    // [보안] 동시 접속 수를 제한합니다. (CWE-410 연결 폭주 방지)
+                    // 접속마다 8KB 읽기 버퍼와 처리 작업이 붙으므로, 무제한으로 받으면
+                    // 접속만 반복해도 메모리·스레드풀을 고갈시킬 수 있습니다.
+                    // 상한을 넘으면 그 접속만 즉시 끊고 계속 수락을 이어갑니다(서버는 살아 있음).
+                    bool rejected = false;
+                    lock (_clients)
+                    {
+                        if (_clients.Count >= MaxConcurrentClients) rejected = true;
+                        else _clients.Add(client);
+                    }
+
+                    if (rejected)
+                    {
+                        try { client.Close(); } catch (Exception) { }
+                        LogEntryReceived?.Invoke(new LogEntry
+                        {
+                            Timestamp = DateTime.Now,
+                            Direction = LogDirection.System,
+                            Message = $"Connection refused (limit {MaxConcurrentClients} reached): {clientIp}"
+                        });
+                        continue;
+                    }
+
                     LogEntryReceived?.Invoke(new LogEntry { Timestamp = DateTime.Now, Direction = LogDirection.System, Message = $"Client connected: {clientIp}" });
 
                     // 각 클라이언트에 대한 처리는 별도의 백그라운드 작업으로 분리하여 실행합니다.

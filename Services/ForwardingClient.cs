@@ -23,6 +23,17 @@ namespace SocketTestTool.Services
         private const int MaxQueuedMessages = 1000;
 
         /// <summary>
+        /// [보안] 대기 큐가 붙들 수 있는 최대 총 바이트 수입니다. (CWE-400 자원 고갈 방지)
+        ///
+        /// 개수 상한만으로는 부족합니다. 한 건의 크기에 제한이 없으면
+        /// 큰 프레임 1,000건만으로도 수 GB를 붙들어 프로세스를 죽일 수 있습니다.
+        /// (서버는 한 프레임을 최대 TcpServerManager.MaxAccumulatedBytes(16MB)까지 모으고,
+        ///  전달 큐에는 표시용으로 자르기 전의 원본이 들어갑니다.)
+        /// 그래서 '개수'와 '총 바이트' 두 가지로 함께 제한합니다.
+        /// </summary>
+        private const long MaxQueuedBytes = 64L * 1024 * 1024;
+
+        /// <summary>
         /// 재접속을 다시 시도하기까지 기다리는 시간(ms)입니다.
         /// </summary>
         private const int ReconnectDelayMs = 3000;
@@ -43,6 +54,9 @@ namespace SocketTestTool.Services
 
         // 큐가 가득 차서 버린 메시지 개수입니다. 로그를 도배하지 않도록 모아서 알립니다.
         private int _droppedCount;
+
+        // 현재 큐가 붙들고 있는 총 바이트 수입니다. (_queue 잠금 안에서만 다룹니다)
+        private long _queuedBytes;
 
         #endregion
 
@@ -102,6 +116,7 @@ namespace SocketTestTool.Services
             {
                 discarded = _queue.Count;
                 _queue.Clear();
+                _queuedBytes = 0;
             }
 
             string tail = discarded > 0 ? $" ({discarded} message(s) not forwarded)" : "";
@@ -119,13 +134,17 @@ namespace SocketTestTool.Services
             int dropped = 0;
             lock (_queue)
             {
-                // 상한을 넘으면 가장 오래된 데이터부터 버립니다.
-                while (_queue.Count >= MaxQueuedMessages)
+                // 개수와 총 바이트, 두 상한 중 하나라도 넘으면 가장 오래된 데이터부터 버립니다.
+                // 바이트 상한이 없으면 큰 프레임 1,000건만으로 수 GB를 붙들 수 있습니다.
+                while (_queue.Count > 0 &&
+                       (_queue.Count >= MaxQueuedMessages || _queuedBytes + data.Length > MaxQueuedBytes))
                 {
-                    _queue.Dequeue();
+                    _queuedBytes -= _queue.Dequeue().Length;
                     dropped++;
                 }
+
                 _queue.Enqueue(data);
+                _queuedBytes += data.Length;
             }
 
             if (dropped > 0)
@@ -291,7 +310,12 @@ namespace SocketTestTool.Services
 
         private void Dequeue()
         {
-            lock (_queue) { if (_queue.Count > 0) _queue.Dequeue(); }
+            // 전송에 성공해 큐에서 빼낼 때도 바이트 합계를 함께 줄여야
+            // _queuedBytes가 실제와 어긋나 상한이 잘못 동작하지 않습니다.
+            lock (_queue)
+            {
+                if (_queue.Count > 0) _queuedBytes -= _queue.Dequeue().Length;
+            }
         }
 
         private int Count()

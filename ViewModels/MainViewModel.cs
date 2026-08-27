@@ -620,6 +620,10 @@ namespace SocketTestTool.ViewModels
                 Connections.Clear();
                 Banners.Clear();
 
+                // 세션을 갈아끼우면 이전 연결들의 처리량 창도 주인을 잃으므로 함께 비웁니다.
+                // (남겨 두면 세션을 불러올 때마다 조금씩 쌓입니다.)
+                _rateWindows.Clear();
+
                 foreach (var conn in loadedConnections)
                 {
                     Connections.Add(conn);
@@ -1090,6 +1094,10 @@ namespace SocketTestTool.ViewModels
         {
             StopConnection(conn);
             Connections.Remove(conn);
+
+            // 처리량 계산용 창은 Connections를 순회하며 정리되므로, 목록에서 빠지면
+            // 아무도 손대지 않는 채로 영원히 남습니다. 여기서 함께 제거합니다.
+            _rateWindows.Remove(conn.Id);
         }
 
         /// <summary>

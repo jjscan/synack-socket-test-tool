@@ -30,7 +30,7 @@ dotnet build
 
 - **산출물은 `bin\Debug\net8.0-windows\win-x64\` 하위입니다.** (`<SelfContained>true</SelfContained>` 때문)
   상위 폴더에는 오래된 바이너리가 남아 있어, 그것을 실행하면 변경사항이 반영되지 않은 채 정상처럼 보입니다.
-- 정상 기준선은 **오류 0개 / 경고 230개**(전부 nullable 계열). 회귀는 "경고가 0이 아닌 것"이 아니라 **새 경고가 생기는 것**입니다.
+- 정상 기준선은 **오류 0개 / 경고 228개**(전부 nullable 계열). 회귀는 "경고가 0이 아닌 것"이 아니라 **새 경고가 생기는 것**입니다.
 - `app.manifest`가 `requireAdministrator`라 **관리자 권한으로만 실행**됩니다. 디버깅하려면 IDE도 관리자로 띄워야 합니다.
 
 ## 변경할 때의 규칙
@@ -45,13 +45,13 @@ dotnet build
 
 ## 검증
 
-기능 QA 166개 / 부하 테스트 49개를 통과한 상태입니다(v2.0.3).
+기능 QA 167개 / 부하 테스트 60개를 통과한 상태입니다(v2.0.4).
 소켓·ViewModel·테마를 건드렸다면 손으로 확인하지 말고 **저장소에 들어 있는 하네스를 돌리세요.**
 
 ```bash
 dotnet build
-dotnet run --project qa/FunctionalQa   # 기능 166개, 약 40초
-dotnet run --project qa/StressTest     # 부하 49개, 약 100초
+dotnet run --project qa/FunctionalQa   # 기능 167개, 약 40초
+dotnet run --project qa/StressTest     # 부하 60개, 약 125초
 ```
 
 자세한 내용은 [qa/README.md](qa/README.md).

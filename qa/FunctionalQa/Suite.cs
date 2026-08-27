@@ -155,9 +155,16 @@ namespace FullQa
                   latest.Version == _vm.AppVersionText, $"note={latest.Version} asm={_vm.AppVersionText}");
             Check("최신 항목에만 CURRENT 표시",
                   ReleaseHistory.All.Count(r => r.IsCurrent) == 1 && latest.IsCurrent);
+            // 버전 목록을 하드코딩하면 릴리스가 늘 때마다 이 검사가 깨집니다.
+            // 목록의 '내용'이 아니라 '내림차순으로 정렬돼 있는지'라는 규칙 자체를 검증합니다.
+            var parsed = ReleaseHistory.All
+                .Select(r => Version.Parse(r.Version.TrimStart('v')))
+                .ToList();
             Check("버전이 내림차순으로 정렬됨",
-                  ReleaseHistory.All.Select(r => r.Version).SequenceEqual(
-                      new[] { "v2.0.2", "v2.0.1", "v2.0.0", "v1.0.1", "v1.0.0" }),
+                  parsed.SequenceEqual(parsed.OrderByDescending(v => v)),
+                  string.Join(",", ReleaseHistory.All.Select(r => r.Version)));
+            Check("버전에 중복이 없음",
+                  parsed.Distinct().Count() == parsed.Count,
                   string.Join(",", ReleaseHistory.All.Select(r => r.Version)));
             Check("VERSIONING.md 문서가 있음",
                   File.Exists(Path.Combine(RepoRoot(), "VERSIONING.md")), RepoRoot());
@@ -169,7 +176,10 @@ namespace FullQa
             Check("버전 기록 창이 최신 버전을 펼쳐 보여 줌", (vh.DataContext as ReleaseNote)?.Version == latest.Version,
                   (vh.DataContext as ReleaseNote)?.Version);
             var list = Find<ListBox>(vh);
-            Check("좌측 버전 목록에 5개 항목", list != null && list.Items.Count == 5, list?.Items.Count.ToString());
+            // 개수를 고정하지 않고 '릴리스 기록 전부가 목록에 나오는지'를 봅니다.
+            Check("좌측 버전 목록에 릴리스 기록 전부가 나옴",
+                  list != null && list.Items.Count == ReleaseHistory.All.Count,
+                  $"목록 {list?.Items.Count} / 기록 {ReleaseHistory.All.Count}");
             vh.Close();
         }
 
