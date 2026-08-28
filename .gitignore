@@ -2,6 +2,9 @@
 bin/
 obj/
 
+# 설치 파일 산출물 (48 MB. 저장소에 넣지 않고 GitHub Releases에 올립니다)
+installer/dist/
+
 # Visual Studio 로컬 상태
 .vs/
 *.user

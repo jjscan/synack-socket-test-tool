@@ -25,8 +25,16 @@
 
 ### 준비물
 
-- Windows 10 이상
+- Windows 10 이상 (64비트)
 - [.NET 8 SDK](https://dotnet.microsoft.com/download/dotnet/8.0) (직접 빌드할 때만 필요)
+
+### 설치 파일로 설치하기 (가장 간단)
+
+[**Releases**](https://github.com/jjscan/synack-socket-test-tool/releases/latest) 에서 `SYNACK_Setup_v2.0.4.exe` 를 받아 실행하면 됩니다.
+
+**.NET을 따로 설치할 필요가 없습니다.** 런타임이 실행 파일 안에 들어 있어서, .NET이 없는 PC에서도 그대로 돕니다.
+
+설치 프로그램은 관리자 권한을 요청하며, 기본 설치 위치는 `C:\Program Files\SYNACK Socket Test Tool` 입니다. 제거는 Windows의 "앱 및 기능"에서 하면 되고, 프로그램이 만든 `Logs\`·`theme.json`·`recent-sessions.json` 까지 같이 지워집니다.
 
 ### 빌드해서 실행하기
 
@@ -48,7 +56,19 @@ bin\Debug\net8.0-windows\win-x64\SocketTestTool.exe
 dotnet publish -p:PublishProfile=FolderProfile
 ```
 
-.NET이 설치되지 않은 PC에서도 도는 단일 실행 파일이 만들어집니다.
+.NET이 설치되지 않은 PC에서도 도는 단일 실행 파일이 `bin\Release\net8.0-windows\publish\win-x64\` 에 만들어집니다.
+
+### 설치 파일 다시 만들기
+
+[Inno Setup 6](https://jrsoftware.org/isdl.php) 이 필요합니다. **위의 `dotnet publish` 를 먼저 해야 합니다.**
+
+```bash
+"C:\Program Files (x86)\Inno Setup 6\ISCC.exe" installer\SocketTestTool.iss
+```
+
+스크립트는 [`installer/SocketTestTool.iss`](installer/SocketTestTool.iss) 이고, 결과물은 `installer\dist\` 에 생깁니다. 버전이 배포본과 어긋나면 컴파일 단계에서 멈추므로, publish를 건너뛴 채 설치 파일만 다시 만드는 실수는 나지 않습니다.
+
+> `installer\dist\` 는 저장소에 커밋하지 않습니다(`.gitignore`). 만들어진 설치 파일은 **Releases에 올립니다.** 48 MB짜리 바이너리를 버전마다 커밋하면 클론 용량이 계속 누적되기 때문입니다.
 
 ### 관리자 권한이 필요합니다
 
