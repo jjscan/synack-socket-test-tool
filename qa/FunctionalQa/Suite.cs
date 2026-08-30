@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.IO;
 using System.Linq;
 using System.Reflection;
@@ -327,6 +327,43 @@ namespace FullQa
                   dlg4.Rules.Count == 1 &&
                   Field<TextBox>(dlg4, "ForwardIpTextBox")?.Text == "10.0.0.9");
             dlg4.Close();
+
+            // --- 확인 결과 문구가 길어도 잘리지 않아야 합니다 ---
+            // 예전에는 가로 StackPanel 안에 있어 자식이 무한 너비를 받았고,
+            // 그래서 TextWrapping="Wrap"이 동작하지 않아 긴 점유 프로세스 문구가 잘렸습니다.
+            var dlg5 = new AddConnectionWindow(true, null, _vm.Connections)
+            { WindowStartupLocation = WindowStartupLocation.Manual, Left = -10000, Top = -10000, ShowInTaskbar = false };
+            dlg5.Show(); dlg5.UpdateLayout(); Pump(150);
+
+            var resultPanel = Field<Border>(dlg5, "CheckResultPanel");
+            var resultText = Field<TextBlock>(dlg5, "StatusText");
+
+            Invoke(dlg5, "ShowCheckResult", true, "TCP 18080 free — 포트 사용 가능합니다.");
+            dlg5.UpdateLayout(); Pump(150);
+            double oneLineHeight = resultText?.ActualHeight ?? 0;
+
+            // 한 줄에 절대 들어가지 않는 길이라야 예전 버그(무한 너비 -> 잘림)를 실제로 재현합니다.
+            string longMsg = "TCP 18080 busy — 사용 중: VeryLongBackgroundServiceProcessName.exe (PID 123456) — " +
+                             "포트를 다른 프로세스가 이미 점유하고 있어 이 주소로는 서버를 열 수 없습니다.";
+            Invoke(dlg5, "ShowCheckResult", false, longMsg);
+            dlg5.UpdateLayout(); Pump(150);
+
+            Check("확인 결과 영역이 표시됨", resultPanel?.Visibility == Visibility.Visible);
+            Check("긴 문구가 잘리지 않고 문자열 그대로 유지됨", resultText?.Text == longMsg);
+            Check("긴 문구가 패널 너비를 넘지 않음",
+                  resultText != null && resultPanel != null && resultText.ActualWidth <= resultPanel.ActualWidth,
+                  $"글자={resultText?.ActualWidth:0}px 패널={resultPanel?.ActualWidth:0}px");
+            Check("긴 문구가 여러 줄로 접힘",
+                  resultText != null && oneLineHeight > 0 && resultText.ActualHeight > oneLineHeight,
+                  $"한 줄={oneLineHeight:0}px 접힘={resultText?.ActualHeight:0}px");
+
+            // 실제로 쓰이는 문구(중복 제거 후)는 한 줄에 들어가야 합니다.
+            Invoke(dlg5, "ShowCheckResult", false, "TCP 18080 busy — 사용 중: nginx.exe (PID 4812)");
+            dlg5.UpdateLayout(); Pump(150);
+            Check("실제 점유 문구는 한 줄에 들어감",
+                  resultText != null && resultText.ActualHeight <= oneLineHeight,
+                  $"높이={resultText?.ActualHeight:0}px 한 줄={oneLineHeight:0}px");
+            dlg5.Close();
         }
 
         #endregion
@@ -932,6 +969,22 @@ namespace FullQa
 
         private static void Session()
         {
+            // 저장할 세션이 없을 때 'Save Session'을 막는지 확인합니다.
+            // 예전에는 연결이 하나도 없어도 "[]" 뿐인 빈 파일이 저장됐습니다.
+            Check("연결이 없으면 Save Session이 비활성", !_vm.SaveSessionCommand.CanExecute(null));
+            _vm.Banners.Clear();
+            _vm.SaveSessionCommand.Execute(null); // 가드가 파일 대화상자 전에 막아야 합니다
+            Pump(150);
+            Check("연결이 없을 때 실행하면 파일 대화상자 대신 경고 배너",
+                  _vm.Banners.Any(b => b.Kind == "session-save-empty"));
+            _vm.Banners.Clear();
+
+            var probe = Add(Server(FreePort(), "ListenOnly")); // 시작하지 않으므로 포트를 물지 않습니다
+            Check("연결이 하나라도 있으면 Save Session이 활성", _vm.SaveSessionCommand.CanExecute(null));
+            _vm.Connections.Remove(probe);
+            Pump(120);
+            Check("연결을 모두 지우면 Save Session이 다시 비활성", !_vm.SaveSessionCommand.CanExecute(null));
+
             int port = FreePort();
             var s = Server(port, "ReplyAfterReceive", "ACK", endless: true, enc: "EUC-KR");
             s.Rules.Add(new ResponseRule { ReceiveData = "PING", SendData = "PONG" });

@@ -1,4 +1,4 @@
-# SYN/ACK — Socket Test Tool
+﻿# SYN/ACK — Socket Test Tool
 
 **TCP 서버와 클라이언트를 원하는 만큼 만들어 한 화면에서 동시에 굴려 보는 통신 테스트 도구입니다.**
 
@@ -30,7 +30,7 @@
 
 ### 설치 파일로 설치하기 (가장 간단)
 
-[**Releases**](https://github.com/jjscan/synack-socket-test-tool/releases/latest) 에서 `SYNACK_Setup_v2.0.4.exe` 를 받아 실행하면 됩니다.
+[**Releases**](https://github.com/jjscan/synack-socket-test-tool/releases/latest) 에서 `SYNACK_Setup_v2.0.5.exe` 를 받아 실행하면 됩니다.
 
 **.NET을 따로 설치할 필요가 없습니다.** 런타임이 실행 파일 안에 들어 있어서, .NET이 없는 PC에서도 그대로 돕니다.
 
@@ -240,7 +240,7 @@ TCP는 전문 단위를 보장하지 않습니다. 연결 추가 창의 **`수�
 | [AGENTS.md](AGENTS.md) | 코드를 고치기 전에 읽을 것 — 구조, 규칙, 함정 |
 | [QA-HISTORY.md](QA-HISTORY.md) | 검증 이력, 고쳐 온 결함과 그 이유, **고치면 안 되는 의도된 동작** |
 | [VERSIONING.md](VERSIONING.md) | 버전 올리는 기준 |
-| [qa/README.md](qa/README.md) | 검증 하네스 실행 방법 (기능 158개 / 부하 42개) |
+| [qa/README.md](qa/README.md) | 검증 하네스 실행 방법 (기능 176개 / 부하 60개) |
 
 앱 안에서는 **도움말 Help → Version History** 로 버전별 변경 내역을 볼 수 있습니다.
 

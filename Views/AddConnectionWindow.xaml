@@ -95,14 +95,20 @@
                                 CornerRadius="{StaticResource RadiusMedium}"
                                 Background="{DynamicResource ControlFillBrush}"
                                 Visibility="Collapsed">
-                            <StackPanel Orientation="Horizontal">
-                                <TextBlock x:Name="CheckResultIcon" Text="&#10003;" FontWeight="Bold" FontSize="12"
-                                           VerticalAlignment="Center" Margin="0,0,8,0"
+                            <!-- 가로 StackPanel을 쓰면 자식이 무한 너비를 받아 TextWrapping이 동작하지 않고
+                                 긴 문장이 잘립니다. 너비가 확정되는 Grid라야 실제로 줄바꿈됩니다. -->
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+                                <TextBlock x:Name="CheckResultIcon" Grid.Column="0" Text="&#10003;" FontWeight="Bold" FontSize="12"
+                                           VerticalAlignment="Top" Margin="0,1,8,0"
                                            Foreground="{DynamicResource SuccessBrush}"/>
-                                <TextBlock x:Name="StatusText" Text="Ready to check connection."
+                                <TextBlock x:Name="StatusText" Grid.Column="1" Text="Ready to check connection."
                                            TextWrapping="Wrap" VerticalAlignment="Center"
                                            Style="{StaticResource BodyTextStyle}" FontSize="12"/>
-                            </StackPanel>
+                            </Grid>
                         </Border>
                     </StackPanel>
                 </Border>

@@ -313,7 +313,7 @@ namespace SocketTestTool.ViewModels
             SendCommand = new RelayCommand(ExecuteSend, CanExecuteWhenActive);
             PeriodicSendCommand = new RelayCommand(ExecutePeriodicSend, CanExecuteWhenActive);
             ClearLogCommand = new RelayCommand(ExecuteClearLog, CanExecuteOnSingleSelected);
-            SaveSessionCommand = new RelayCommand(ExecuteSaveSession);
+            SaveSessionCommand = new RelayCommand(ExecuteSaveSession, CanSaveSession);
             LoadSessionCommand = new RelayCommand(ExecuteLoadSession);
             SaveLogCommand = new RelayCommand(ExecuteSaveLog, CanExecuteOnSingleSelected);
             ExitCommand = new RelayCommand(param => Application.Current.Shutdown());
@@ -560,8 +560,24 @@ namespace SocketTestTool.ViewModels
         /// 'Save Session' 커맨드가 실행될 때 호출됩니다.
         /// 현재 연결 목록을 JSON 파일로 저장합니다.
         /// </summary>
+        private bool CanSaveSession(object? param) => Connections.Count > 0;
+
         private void ExecuteSaveSession(object? param)
         {
+            // 메뉴는 비활성이지만, 단축키나 코드 경로로 들어올 수 있어 한 번 더 막습니다.
+            // 빈 목록을 저장하면 "[]" 뿐인 파일이 남아 나중에 불러와도 아무 일도 일어나지 않습니다.
+            if (Connections.Count == 0)
+            {
+                ShowBanner(new BannerItem
+                {
+                    Severity = BannerSeverity.Warning,
+                    Kind = "session-save-empty",
+                    Title = "저장할 세션이 없습니다",
+                    Detail = "연결을 하나 이상 추가한 뒤에 저장하세요."
+                });
+                return;
+            }
+
             var sfd = new SaveFileDialog { Filter = "JSON File (*.json)|*.json", Title = "Save Session As..." };
             if (sfd.ShowDialog() != true) return;
 
@@ -780,6 +796,7 @@ namespace SocketTestTool.ViewModels
                 (PeriodicSendCommand as RelayCommand)?.RaiseCanExecuteChanged();
                 (ClearLogCommand as RelayCommand)?.RaiseCanExecuteChanged();
                 (SaveLogCommand as RelayCommand)?.RaiseCanExecuteChanged();
+                (SaveSessionCommand as RelayCommand)?.RaiseCanExecuteChanged();
                 (StartConnectionCommand as RelayCommand)?.RaiseCanExecuteChanged();
                 (StopConnectionCommand as RelayCommand)?.RaiseCanExecuteChanged();
             });
@@ -834,6 +851,8 @@ namespace SocketTestTool.ViewModels
         {
             UpdateConnectionStats();
             ReorderSequence();
+            // 연결이 하나도 없으면 'Save Session'이 비활성이어야 하므로 다시 판단합니다.
+            (SaveSessionCommand as RelayCommand)?.RaiseCanExecuteChanged();
             if (e.NewItems != null) foreach (ConnectionModel item in e.NewItems) item.PropertyChanged += Connection_PropertyChanged;
             if (e.OldItems != null) foreach (ConnectionModel item in e.OldItems) item.PropertyChanged -= Connection_PropertyChanged;
         }

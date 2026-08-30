@@ -8,19 +8,19 @@
 
 ```bash
 dotnet build                        # 본체를 먼저 빌드
-dotnet run --project qa/FunctionalQa   # 기능 167개
+dotnet run --project qa/FunctionalQa   # 기능 176개
 dotnet run --project qa/StressTest     # 부하 60개
 ```
 
 ---
 
-## 1. 현재 검증 상태 (2026-08-27 기준)
+## 1. 현재 검증 상태 (2026-08-30 기준)
 
 | 항목 | 값 |
 | --- | --- |
-| 검증한 버전 | **v2.0.4** (`FileVersion 2.0.4.0`) |
+| 검증한 버전 | **v2.0.5** (`FileVersion 2.0.5.0`) |
 | 빌드 | **오류 0개 / 경고 0개.** 이것이 기준선이며, 경고가 하나라도 생기면 회귀입니다 |
-| 기능 QA | **167개 검사 전부 통과** (16개 구간, 보안 8개 포함) |
+| 기능 QA | **176개 검사 전부 통과** (16개 구간, 보안 8개 포함) |
 | 부하·자원 테스트 | **60개 검사 전부 통과** (12개 구간, 자원 고갈 공격 3종 포함) |
 | 실행 환경 | Windows 10 Pro 19045 / 12 논리 코어 / 32 GB RAM / .NET SDK 10.0.101 (타깃 net8.0-windows) |
 
@@ -29,7 +29,7 @@ dotnet run --project qa/StressTest     # 부하 60개
 
 ---
 
-## 2. 기능 QA 결과 (167개 검사)
+## 2. 기능 QA 결과 (176개 검사)
 
 | 구간 | 검사 수 | 검증 내용 |
 | --- | ---: | --- |
@@ -204,6 +204,8 @@ TCP가 그 쓰기를 성공으로 보고하므로 1건이 유실될 수 있습�
 | 11 | (보안) 악의적 무한 스트림으로 메모리 고갈 — 단일 연결로 OOM (CWE-400/770) | 서버 수신 누적이 `ReceiveTimeout` **침묵이 올 때까지** 계속됨. 쉬지 않고 보내면 `lastDataTime`이 매번 리셋되어 `accumulatedData`가 무한 증가. 게다가 로그는 **개수(1000건) 상한만** 있고 항목당 바이트 상한이 없어, 큰 `Data`를 쥔 항목이 `_logQueue`/`Logs`에 쌓이며 증폭 | ①누적 루프에 `MaxAccumulatedBytes`(16 MB) 상한 — 닿으면 침묵을 더 기다리지 않고 즉시 한 프레임으로 처리 ②`HandleLogEntry`에서 로그 보관용 `Data`를 표시 상한(4 KB)까지 트리밍(**자동 전달 Enqueue 이후**에 잘라 전달 데이터는 전량 유지). `HexText`·검색은 실제 보유 길이 기준으로 변환 | 2.0.3 |
 | 12 | (보안) 자동 전달 대기 큐로 메모리 고갈 (CWE-400/770) | 큐가 **건수(1,000)로만** 제한됨. #11 수정으로 프레임이 최대 16 MB까지 커질 수 있고, 큐에는 트리밍 **전** 원본이 들어가므로 최악 1,000 × 16 MB = 16 GB. 기존 테스트는 22바이트 페이로드라 이 경로를 자극 못 함 | `MaxQueuedBytes`(64 MB) 총량 상한 추가. `_queuedBytes`를 Enqueue/Dequeue/Clear에서 함께 갱신 | 2.0.4 |
 | 13 | (보안) 접속 폭주로 자원 고갈 (CWE-410) | accept 루프가 동시 접속 수를 제한하지 않음. 접속마다 8 KB 버퍼 + 처리 작업이 붙어 접속만 반복해도 고갈 가능 | `MaxConcurrentClients`(512) 상한. 초과분은 그 접속만 닫고 로그로 알린 뒤 수락 계속 | 2.0.4 |
+| 15 | 연결이 없는데도 빈 세션이 저장됨 | `SaveSessionCommand`에 `CanExecute`가 없어 연결 0개에서도 실행됐고, `[]` 뿐인 파일이 만들어짐. 나중에 불러와도 아무 일도 일어나지 않아 사용자가 원인을 짐작하기 어려움 | `CanSaveSession`(`Connections.Count > 0`) 추가로 메뉴를 비활성화. `Connections_CollectionChanged`에서 `RaiseCanExecuteChanged`. 실행부에도 가드를 두고 경고 배너(`session-save-empty`) 표시 | 2.0.5 |
+| 16 | 연결 확인 결과의 긴 문구가 잘림 | `CheckResultPanel` 안이 **가로 `StackPanel`** 이라 자식이 무한 너비를 받음. 그래서 `TextWrapping="Wrap"`이 아무 일도 하지 않고 글자가 Border 밖으로 넘쳐 잘림(측정값: 글자 898px / 패널 503px). 게다가 `DescribeOwnerAsync`가 이미 "포트 N 사용 중"을 포함하는데 호출부가 같은 뜻을 한 번 더 붙여 문장이 두 배로 길었음 | ①`StackPanel`을 2열 `Grid`(Auto/\*)로 바꿔 너비를 확정 — 줄바꿈이 실제로 동작 ②`FindOwnerShortAsync` 추가로 대화상자는 `nginx.exe (PID 4812)` 짧은 형태만 사용(배너용 `DescribeOwnerAsync`는 그대로) | 2.0.5 |
 | 14 | 연결 삭제 후 처리량 창 누수 | `_rateWindows`는 `Connections`를 순회하며 정리되는데, 목록에서 빠진 항목은 아무도 손대지 않아 영구 잔존 | `StopAndRemoveConnection`에서 `Remove`, 세션 교체 시 `Clear` | 2.0.4 |
 
 **#9 개선 폭**: UI 최대 정지 10,001 ms → **52 ms**, 프로세스 메모리 810 MB → **196 MB**
@@ -301,6 +303,7 @@ var vm = (MainViewModel)w.DataContext;   // 실제 ViewModel을 그대로 사용
 
 | 날짜 | 내용 |
 | --- | --- |
+| 2026-08-30 | 빈 세션 저장(#15)과 확인 결과 문구 잘림(#16) 수정. 기능 QA에 검사 9개 추가(176개). #16은 예전 레이아웃으로 되돌려 검사가 실제로 실패하는지 대조 확인함. v2.0.5 |
 | 2026-08-28 | 윈도우 설치 파일(Inno Setup) 스크립트를 저장소 `installer/` 로 들여오고 상대 경로화. 무인 설치→제거 왕복 검증 중 `[Run]` 에 `skipifsilent` 누락으로 제거 시 156 MB 잔여가 생기는 문제를 발견·수정. 설치 파일 자체는 저장소가 아니라 **GitHub Releases** 로 배포 |
 | 2026-08-27 | 빌드 경고 228개 → **0개**. `NoWarn` 억제가 아니라 nullable 주석·초기화로 실제 해결. 기능 167개 / 부하 60개 재실행 전부 통과, 동작 변경 없음(버전 유지) |
 | 2026-08-26 | 하네스를 저장소 `qa/` 로 옮겨 상시 실행 가능하게 함. 절대 경로 제거(`RepoRoot()`), 본체 빌드에서 `qa/**` 제외. README.md 작성 |

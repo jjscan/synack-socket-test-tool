@@ -1,4 +1,4 @@
-; SYN/ACK - Socket Test Tool 윈도우 설치 파일 스크립트 (Inno Setup 6)
+﻿; SYN/ACK - Socket Test Tool 윈도우 설치 파일 스크립트 (Inno Setup 6)
 ;
 ; 만드는 법 (반드시 이 순서):
 ;   1) dotnet publish -p:PublishProfile=FolderProfile
@@ -13,7 +13,7 @@
 #define AppExe "..\bin\Release\net8.0-windows\publish\win-x64\SocketTestTool.exe"
 
 ; 버전은 여기 한 곳만 고칩니다. csproj의 <Version>과 같아야 합니다.
-#define AppVersion "2.0.4"
+#define AppVersion "2.0.5"
 
 ; 빌드된 exe와 위 버전이 어긋나면 여기서 멈춥니다.
 ; (publish를 다시 하지 않고 설치 파일만 만드는 실수를 막습니다)

@@ -59,9 +59,23 @@ namespace SocketTestTool.Models
             // v2.0.1은 재설계 이후에 나온 '원래 되어야 했던 것'들만 고친 패치입니다.
             new ReleaseNote
             {
+                Version = "v2.0.5",
+                ReleaseDate = "2026-08-30",
+                IsCurrent = true,
+                Tagline = "사용성 수정",
+                BugFixes =
+                {
+                    new ReleaseNoteItem("저장할 연결이 없을 때 빈 세션이 저장되던 문제",
+                        "연결을 하나도 만들지 않은 상태에서 'Save Session'을 누르면 내용이 없는 파일이 만들어졌습니다. 이제 연결이 없으면 메뉴가 비활성으로 표시됩니다."),
+                    new ReleaseNoteItem("연결 확인 결과의 긴 문구가 잘리던 문제",
+                        "포트를 점유한 프로세스 이름이 길면 뒷부분이 화면 밖으로 잘려 보이지 않았습니다. 이제 상자 안에서 줄이 바뀌어 전부 보입니다. 안내 문구의 중복된 표현도 함께 다듬었습니다.")
+                }
+            },
+
+            new ReleaseNote
+            {
                 Version = "v2.0.4",
                 ReleaseDate = "2026-08-26",
-                IsCurrent = true,
                 Tagline = "보안 강화",
                 BugFixes =
                 {

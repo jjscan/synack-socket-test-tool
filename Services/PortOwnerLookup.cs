@@ -20,13 +20,37 @@ namespace SocketTestTool.Services
         /// <returns>예: "nginx.exe (PID 4812)" / 찾지 못하면 안내 문장</returns>
         public static async Task<string> DescribeOwnerAsync(int port)
         {
+            var (owner, problem) = await LookupAsync(port).ConfigureAwait(false);
+            return owner != null ? $"포트 {port} 사용 중: {owner}" : problem;
+        }
+
+        /// <summary>
+        /// 점유 프로세스를 "nginx.exe (PID 4812)" 처럼 짧게만 돌려줍니다. 찾지 못하면 null입니다.
+        /// 이미 문맥이 있는 곳(연결 확인 결과처럼)에서 문장이 겹치지 않게 하려고 나눠 두었습니다.
+        /// </summary>
+        public static async Task<string?> FindOwnerShortAsync(int port)
+        {
+            var (owner, _) = await LookupAsync(port).ConfigureAwait(false);
+            return owner;
+        }
+
+        #endregion
+
+        #region Private Methods
+
+        /// <summary>
+        /// 포트를 LISTENING 중인 프로세스를 찾습니다.
+        /// 찾으면 owner에 "이름.exe (PID n)"가, 못 찾으면 problem에 그 이유가 담깁니다.
+        /// </summary>
+        private static async Task<(string? owner, string problem)> LookupAsync(int port)
+        {
             try
             {
                 // netstat -ano의 출력에서 로컬 주소가 :port로 끝나고 LISTENING인 줄의 PID를 찾습니다.
                 // (소유 PID를 직접 얻으려면 GetExtendedTcpTable P/Invoke가 필요한데,
                 //  진단용 1회 조회에는 netstat 파싱이 훨씬 가볍습니다.)
                 string output = await RunNetstatAsync().ConfigureAwait(false);
-                if (string.IsNullOrEmpty(output)) return "포트 사용 정보를 읽지 못했습니다.";
+                if (string.IsNullOrEmpty(output)) return (null, "포트 사용 정보를 읽지 못했습니다.");
 
                 var match = Regex.Match(
                     output,
@@ -35,12 +59,12 @@ namespace SocketTestTool.Services
 
                 if (!match.Success)
                 {
-                    return $"포트 {port}을(를) LISTENING 중인 프로세스를 찾지 못했습니다.";
+                    return (null, $"포트 {port}을(를) LISTENING 중인 프로세스를 찾지 못했습니다.");
                 }
 
                 if (!int.TryParse(match.Groups[1].Value, out int pid))
                 {
-                    return $"포트 {port} 점유 프로세스의 PID를 해석하지 못했습니다.";
+                    return (null, $"포트 {port} 점유 프로세스의 PID를 해석하지 못했습니다.");
                 }
 
                 string processName;
@@ -54,17 +78,13 @@ namespace SocketTestTool.Services
                     processName = "(알 수 없는 프로세스)";
                 }
 
-                return $"포트 {port} 사용 중: {processName} (PID {pid})";
+                return ($"{processName} (PID {pid})", string.Empty);
             }
             catch (Exception ex)
             {
-                return $"포트 사용 정보를 읽지 못했습니다: {ex.Message}";
+                return (null, $"포트 사용 정보를 읽지 못했습니다: {ex.Message}");
             }
         }
-
-        #endregion
-
-        #region Private Methods
 
         /// <summary>
         /// netstat -ano를 백그라운드에서 실행하고 표준 출력을 문자열로 돌려줍니다.

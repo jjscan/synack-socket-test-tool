@@ -397,8 +397,10 @@ namespace SocketTestTool.Views
 
             if (!isAvailable)
             {
-                string owner = await PortOwnerLookup.DescribeOwnerAsync(port);
-                ShowCheckResult(false, $"TCP {port} busy — 포트를 다른 프로세스가 사용 중입니다. {owner}");
+                string? owner = await PortOwnerLookup.FindOwnerShortAsync(port);
+                ShowCheckResult(false, owner == null
+                    ? $"TCP {port} busy — 다른 프로세스가 사용 중입니다."
+                    : $"TCP {port} busy — 사용 중: {owner}");
                 return;
             }
 
