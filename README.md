@@ -68,6 +68,14 @@ dotnet publish -p:PublishProfile=FolderProfile
 
 스크립트는 [`installer/SocketTestTool.iss`](installer/SocketTestTool.iss) 이고, 결과물은 `installer\dist\` 에 생깁니다. 버전이 배포본과 어긋나면 컴파일 단계에서 멈추므로, publish를 건너뛴 채 설치 파일만 다시 만드는 실수는 나지 않습니다.
 
+**설치 파일 자체를 시험 삼아 설치해 볼 때는 `/DTEST` 를 붙여 만드세요.**
+
+```bash
+"C:\Program Files (x86)\Inno Setup 6\ISCC.exe" /DTEST installer\SocketTestTool.iss
+```
+
+AppId와 설치 경로가 달라져 실제 설치본과 분리됩니다. 이걸 빠뜨리면 시험 설치를 제거할 때 **이 PC에 깔려 있는 진짜 설치본의 "앱 및 기능" 항목과 시작 메뉴 바로가기까지 함께 지워집니다.**
+
 > `installer\dist\` 는 저장소에 커밋하지 않습니다(`.gitignore`). 만들어진 설치 파일은 **Releases에 올립니다.** 48 MB짜리 바이너리를 버전마다 커밋하면 클론 용량이 계속 누적되기 때문입니다.
 
 ### 관리자 권한이 필요합니다

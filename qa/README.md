@@ -31,6 +31,17 @@ dotnet run --project qa/StressTest
 - `%TEMP%\stress-result.txt` — 부하 테스트 결과 (구간마다 갱신되므로 도중에 멈춰도 남습니다)
 - `%TEMP%\fullqa-*.png` — 화면 캡처 (빈 상태, 라이트/다크 테마)
 
+## 설치 파일을 시험 설치할 때
+
+**반드시 `/DTEST` 로 만든 설치 파일을 쓰세요.**
+
+```bash
+"C:\Program Files (x86)\Inno Setup 6\ISCC.exe" /DTEST installer\SocketTestTool.iss
+```
+
+배포용 설치 파일로 시험 설치·제거를 하면, 같은 AppId를 쓰기 때문에 **이 PC에 깔려 있는 실제 설치본의
+등록 정보와 시작 메뉴 바로가기가 함께 지워집니다.** 실제로 겪은 사고입니다 — [../QA-HISTORY.md](../QA-HISTORY.md) 결함 #17.
+
 ## 알아 둘 것
 
 - **창이 실제로 뜹니다.** 화면 캡처와 메뉴 팝업 검증 때문에 화면 위에 올라옵니다. 실행 중에는 마우스·키보드를 건드리지 마세요.

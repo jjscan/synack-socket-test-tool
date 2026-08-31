@@ -24,12 +24,31 @@
   #error 버전 불일치 - iss는 AppVersion, exe는 GetVersionNumbersString(AppExe) 입니다. publish를 다시 하세요.
 #endif
 
+; 검증용으로 만들 때는 ISCC에 /DTEST 를 주세요.
+;
+;   "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" /DTEST installer\SocketTestTool.iss
+;
+; AppId가 달라져서 실제 설치본과 완전히 분리됩니다. 이게 없으면, 무인 설치/제거로
+; 설치 파일을 검증하는 순간 **같은 AppId를 쓰는 실제 설치본의 등록 정보와 시작 메뉴
+; 바로가기가 함께 지워집니다.** (실제로 겪은 사고입니다. QA-HISTORY.md 결함 #17)
+#ifdef TEST
+  #define SetupAppId "{{7A3E1C42-9B55-4D18-AE30-2F6C8D1B4E97}"
+  #define SetupAppName "SYNACK - Socket Test Tool (TEST BUILD)"
+  #define SetupDirName "SYNACK Socket Test Tool TEST"
+  #define SetupOutBase "SYNACK_TESTONLY_v" + AppVersion
+#else
+  #define SetupAppId "{{C620F4D8-682E-474A-A372-47F157833633}"
+  #define SetupAppName "SYNACK - Socket Test Tool"
+  #define SetupDirName "SYNACK Socket Test Tool"
+  #define SetupOutBase "SYNACK_Setup_v" + AppVersion
+#endif
+
 [Setup]
-; AppId는 절대 바꾸지 마세요. 이 값이 같아야 새 버전이 기존 설치를 덮어씁니다.
-AppId={{C620F4D8-682E-474A-A372-47F157833633}
-AppName=SYNACK - Socket Test Tool
+; 배포용 AppId는 절대 바꾸지 마세요. 이 값이 같아야 새 버전이 기존 설치를 덮어씁니다.
+AppId={#SetupAppId}
+AppName={#SetupAppName}
 AppVersion={#AppVersion}
-AppVerName=SYNACK - Socket Test Tool {#AppVersion}
+AppVerName={#SetupAppName} {#AppVersion}
 AppPublisher=J2S
 AppPublisherURL=https://github.com/jjscan/synack-socket-test-tool
 AppSupportURL=https://github.com/jjscan/synack-socket-test-tool/issues
@@ -43,13 +62,13 @@ PrivilegesRequired=admin
 ArchitecturesAllowed=x64compatible
 ArchitecturesInstallIn64BitMode=x64compatible
 
-DefaultDirName={autopf64}\SYNACK Socket Test Tool
-DefaultGroupName=SYNACK Socket Test Tool
+DefaultDirName={autopf64}\{#SetupDirName}
+DefaultGroupName={#SetupDirName}
 DisableProgramGroupPage=yes
-UninstallDisplayName=SYNACK - Socket Test Tool
+UninstallDisplayName={#SetupAppName}
 UninstallDisplayIcon={app}\SocketTestTool.exe
 
-OutputBaseFilename=SYNACK_Setup_v{#AppVersion}
+OutputBaseFilename={#SetupOutBase}
 OutputDir=dist
 Compression=lzma2/max
 SolidCompression=yes
@@ -66,8 +85,8 @@ Name: "korean"; MessagesFile: "compiler:Languages\Korean.isl"
 Source: "{#AppExe}"; DestDir: "{app}"; Flags: ignoreversion
 
 [Icons]
-Name: "{group}\SYNACK - Socket Test Tool"; Filename: "{app}\SocketTestTool.exe"
-Name: "{autodesktop}\SYNACK - Socket Test Tool"; Filename: "{app}\SocketTestTool.exe"; Tasks: desktopicon
+Name: "{group}\{#SetupAppName}"; Filename: "{app}\SocketTestTool.exe"
+Name: "{autodesktop}\{#SetupAppName}"; Filename: "{app}\SocketTestTool.exe"; Tasks: desktopicon
 
 [Tasks]
 Name: "desktopicon"; Description: "바탕 화면에 아이콘 만들기"; GroupDescription: "추가 아이콘:"
