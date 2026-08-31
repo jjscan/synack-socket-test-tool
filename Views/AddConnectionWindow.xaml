@@ -113,14 +113,14 @@
                     </StackPanel>
                 </Border>
 
-                <!-- 서버 전용 설정 -->
-                <StackPanel x:Name="ServerOptionsPanel" Visibility="Collapsed">
+                <!-- 응답 설정 (서버·클라이언트 공용) -->
+                <StackPanel x:Name="ResponseOptionsPanel" Visibility="Collapsed">
 
                     <!-- 응답 패턴 -->
                     <Border Style="{StaticResource SectionCardStyle}">
                         <StackPanel>
-                            <TextBlock Text="응답 패턴 Response Pattern" Style="{StaticResource GroupLabelStyle}"/>
-                            <UniformGrid Rows="2" Columns="2">
+                            <TextBlock x:Name="ResponseGroupLabel" Text="응답 패턴 Response Pattern" Style="{StaticResource GroupLabelStyle}"/>
+                            <UniformGrid x:Name="PatternGrid" Columns="2">
                                 <RadioButton x:Name="EchoRadio" GroupName="Pattern" Tag="Echo" Margin="0,0,5,5"
                                              Style="{StaticResource RadioCardStyle}" IsChecked="True"
                                              Checked="ResponsePattern_Changed">
@@ -157,20 +157,21 @@
                                 <TextBlock Text="응답 데이터 Reply Data" Style="{StaticResource CaptionTextStyle}" Margin="0,0,0,5"/>
                                 <TextBox x:Name="ReplyMessageTextBox"
                                          Style="{StaticResource FluentTextBoxStyle}" FontFamily="{StaticResource MonoFontFamily}"/>
+                                <CheckBox x:Name="EndlessReplyCheckBox" Content="지속 응답" HorizontalAlignment="Right"
+                                          Margin="0,8,0,0" Style="{StaticResource FluentCheckBoxStyle}"/>
+                            </StackPanel>
 
-                                <Grid Margin="0,10,0,0">
-                                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                                        <TextBlock Text="수신 대기 Receive timeout" VerticalAlignment="Center"
-                                                   Style="{StaticResource CaptionTextStyle}"/>
-                                        <TextBox x:Name="ReceiveTimeoutTextBox" Text="300" Width="64" Margin="10,0,0,0"
-                                                 Style="{StaticResource FluentTextBoxStyle}" FontFamily="{StaticResource MonoFontFamily}"
-                                                 ToolTip="데이터가 끊겨서 들어올 때, 합쳐서 받기 위해 대기하는 시간"/>
-                                        <TextBlock Text="ms · 조각화 방지" VerticalAlignment="Center" Margin="8,0,0,0"
-                                                   Style="{StaticResource CaptionTextStyle}"/>
-                                    </StackPanel>
-                                    <CheckBox x:Name="EndlessReplyCheckBox" Content="지속 응답" HorizontalAlignment="Right"
-                                              VerticalAlignment="Center" Style="{StaticResource FluentCheckBoxStyle}"/>
-                                </Grid>
+                            <!-- 조각 합치기. 규칙 기반 응답은 '수동 응답'에서도 동작하므로
+                                 응답 데이터와 분리해 두어야 규칙만 쓰는 경우에도 설정할 수 있습니다. -->
+                            <StackPanel x:Name="ReceiveTimeoutPanel" Visibility="Collapsed" Orientation="Horizontal"
+                                        VerticalAlignment="Center" Margin="0,12,0,0">
+                                <TextBlock Text="수신 대기 Receive timeout" VerticalAlignment="Center"
+                                           Style="{StaticResource CaptionTextStyle}"/>
+                                <TextBox x:Name="ReceiveTimeoutTextBox" Text="300" Width="64" Margin="10,0,0,0"
+                                         Style="{StaticResource FluentTextBoxStyle}" FontFamily="{StaticResource MonoFontFamily}"
+                                         ToolTip="데이터가 끊겨서 들어올 때, 합쳐서 받기 위해 대기하는 시간입니다. 0이면 받는 대로 바로 처리합니다."/>
+                                <TextBlock Text="ms · 0이면 합치지 않음" VerticalAlignment="Center" Margin="8,0,0,0"
+                                           Style="{StaticResource CaptionTextStyle}"/>
                             </StackPanel>
                         </StackPanel>
                     </Border>

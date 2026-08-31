@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -227,6 +227,69 @@ namespace FullQa
             public string TextAscii() { lock (_lock) return Encoding.ASCII.GetString(_rx.ToArray()); }
             public void Clear() { lock (_lock) _rx.Clear(); }
             public void Stop() { _stopped = true; try { _listener?.Stop(); } catch (Exception) { } }
+            public void Dispose() => Stop();
+        }
+
+        /// <summary>
+        /// 지정한 포트에서 클라이언트 하나를 받아 주고받을 수 있는 시험용 서버입니다.
+        /// SinkServer는 받기만 하므로, 클라이언트의 자동 응답을 확인하려면 보낼 수 있어야 합니다.
+        /// </summary>
+        public sealed class PeerServer : IDisposable
+        {
+            private readonly TcpListener _listener;
+            private TcpClient _peer;
+            private readonly List<byte> _rx = new List<byte>();
+            private readonly object _lock = new object();
+            private volatile bool _stopped;
+
+            public int Port { get; }
+
+            public PeerServer(int port)
+            {
+                Port = port;
+                _listener = new TcpListener(IPAddress.Loopback, port);
+                _listener.Start();
+                Accept();
+            }
+
+            private async void Accept()
+            {
+                try
+                {
+                    var c = await _listener.AcceptTcpClientAsync().ConfigureAwait(false);
+                    _peer = c;
+                    ReadFrom(c);
+                }
+                catch (Exception) { }
+            }
+
+            private async void ReadFrom(TcpClient c)
+            {
+                try
+                {
+                    var s = c.GetStream();
+                    var buf = new byte[8192];
+                    while (!_stopped)
+                    {
+                        int n = await s.ReadAsync(buf, 0, buf.Length).ConfigureAwait(false);
+                        if (n == 0) break;
+                        lock (_lock) { for (int i = 0; i < n; i++) _rx.Add(buf[i]); }
+                    }
+                }
+                catch (Exception) { }
+            }
+
+            public bool WaitForClient(int timeoutMs) => WaitUntil(() => _peer != null, timeoutMs);
+
+            public void SendAscii(string text)
+            {
+                var b = Encoding.ASCII.GetBytes(text);
+                _peer.GetStream().Write(b, 0, b.Length);
+            }
+
+            public string TextAscii() { lock (_lock) return Encoding.ASCII.GetString(_rx.ToArray()); }
+            public void Clear() { lock (_lock) _rx.Clear(); }
+            public void Stop() { _stopped = true; try { _peer?.Close(); } catch (Exception) { } try { _listener.Stop(); } catch (Exception) { } }
             public void Dispose() => Stop();
         }
 

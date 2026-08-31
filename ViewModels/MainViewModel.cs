@@ -1046,6 +1046,11 @@ namespace SocketTestTool.ViewModels
             {
                 var clientManager = new TcpClientManager
                 {
+                    ResponsePattern = conn.ResponsePattern ?? "ListenOnly",
+                    Rules = conn.Rules,
+                    ReplyMessage = conn.ReplyMessage,
+                    IsReplyEndless = conn.IsReplyEndless,
+                    ReceiveTimeout = conn.ReceiveTimeout,
                     CurrentEncoding = GetEncodingByName(conn.EncodingName),
                     IsRealtimeLogEnabled = conn.IsRealtimeLogEnabled
                 };
@@ -1196,6 +1201,18 @@ namespace SocketTestTool.ViewModels
             if (conn.Type == "Server" && !string.IsNullOrEmpty(conn.ResponsePattern))
             {
                 parts.Add(DescribeResponsePattern(conn.ResponsePattern));
+            }
+            else if (conn.Type == "Client")
+            {
+                // 클라이언트는 '자동 응답을 하느냐'만 알면 되므로, 켜져 있을 때만 적습니다.
+                bool autoReply = conn.ResponsePattern == "ReplyAfterReceive";
+                bool hasRules = conn.Rules != null && conn.Rules.Count > 0;
+                if (autoReply || hasRules)
+                {
+                    parts.Add(hasRules && autoReply ? "자동응답 + 규칙"
+                            : hasRules ? $"규칙 {conn.Rules!.Count}개"
+                            : "자동응답");
+                }
             }
 
             parts.Add(conn.EncodingName);

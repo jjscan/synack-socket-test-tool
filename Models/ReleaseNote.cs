@@ -59,9 +59,23 @@ namespace SocketTestTool.Models
             // v2.0.1은 재설계 이후에 나온 '원래 되어야 했던 것'들만 고친 패치입니다.
             new ReleaseNote
             {
+                Version = "v2.1.0",
+                ReleaseDate = "2026-08-31",
+                IsCurrent = true,
+                Tagline = "클라이언트 자동 응답",
+                Improvements =
+                {
+                    new ReleaseNoteItem("클라이언트도 받으면 자동으로 회신할 수 있습니다",
+                        "지금까지 자동 응답은 서버에서만 됐습니다. 이제 클라이언트도 상대가 보내오면 정해진 값으로 회신하거나, 받은 내용에 따라 다른 값으로 회신할 수 있습니다. 연결 추가 창의 '자동 응답'에서 켭니다. 주기 전송과 함께 써도 됩니다."),
+                    new ReleaseNoteItem("클라이언트도 쪼개져 오는 전문을 합쳐서 받습니다",
+                        "'수신 대기' 시간을 주면 그 시간만큼 조용해질 때까지 기다렸다가 한 건으로 합칩니다. 0이면 지금까지처럼 받는 대로 처리하므로, 예전에 만든 연결은 동작이 그대로입니다.")
+                }
+            },
+
+            new ReleaseNote
+            {
                 Version = "v2.0.5",
                 ReleaseDate = "2026-08-30",
-                IsCurrent = true,
                 Tagline = "사용성 수정",
                 BugFixes =
                 {

@@ -159,6 +159,14 @@ namespace SocketTestTool.Views
         /// </summary>
         private void SelectResponsePattern(string pattern)
         {
+            // 클라이언트에는 Echo와 '접속 시 1회 전송' 카드가 없습니다.
+            // 이 기능이 생기기 전에 만든 클라이언트 연결은 기본값 "Echo"로 저장돼 있으므로,
+            // 그대로 두면 아무것도 선택되지 않은 것처럼 보입니다.
+            if (!_isServerMode && (pattern == "Echo" || pattern == "SendOnce"))
+            {
+                pattern = "ListenOnly";
+            }
+
             switch (pattern)
             {
                 case "ReplyAfterReceive": ReplyAfterReceiveRadio.IsChecked = true; break;
@@ -180,16 +188,54 @@ namespace SocketTestTool.Views
         }
 
         /// <summary>
-        /// 서버/클라이언트 모드에 따라 서버 전용 설정 묶음의 표시 여부를 바꿉니다.
+        /// 서버/클라이언트 모드에 맞춰 응답 설정의 표시 내용을 바꿉니다.
+        /// 응답 설정 자체는 양쪽 모두에 있고, 클라이언트에서는 쓸 수 없는 항목만 감춥니다.
         /// </summary>
         private void ApplyModeVisibility()
         {
-            ServerOptionsPanel.Visibility = _isServerMode ? Visibility.Visible : Visibility.Collapsed;
+            ResponseOptionsPanel.Visibility = Visibility.Visible;
+
+            ResponseGroupLabel.Text = _isServerMode
+                ? "응답 패턴 Response Pattern"
+                : "자동 응답 Auto Reply";
+
+            // Echo와 '접속 시 1회 전송'은 서버에서만 의미가 있습니다.
+            // 특히 Echo는 상대 서버도 Echo면 둘이 무한히 주고받게 되므로 클라이언트에 두지 않습니다.
+            var serverOnly = _isServerMode ? Visibility.Visible : Visibility.Collapsed;
+            EchoRadio.Visibility = serverOnly;
+            SendOnceRadio.Visibility = serverOnly;
+
+            // 클라이언트에서 서버 전용 패턴이 선택된 채로 남지 않게 합니다.
+            if (!_isServerMode && (EchoRadio.IsChecked == true || SendOnceRadio.IsChecked == true))
+            {
+                ListenOnlyRadio.IsChecked = true;
+            }
+            // 서버로 돌아왔는데 아무것도 선택돼 있지 않으면 기본값으로 되돌립니다.
+            else if (_isServerMode && GetSelectedResponsePattern() == "Echo" && EchoRadio.IsChecked != true)
+            {
+                EchoRadio.IsChecked = true;
+            }
+
+            UpdateReceiveTimeoutVisibility();
+        }
+
+        /// <summary>
+        /// '수신 대기'는 조각을 합쳐 한 건으로 판정할 때 쓰입니다.
+        /// 고정 응답을 쓸 때와, 규칙이 하나라도 있을 때 의미가 있습니다.
+        /// (규칙은 '수동 응답'에서도 동작하므로 응답 패턴만으로 판단하면 안 됩니다.)
+        /// </summary>
+        private void UpdateReceiveTimeoutVisibility()
+        {
+            if (ReceiveTimeoutPanel == null) return;
+
+            bool needed = ReplyAfterReceiveRadio.IsChecked == true || Rules.Count > 0;
+            ReceiveTimeoutPanel.Visibility = needed ? Visibility.Visible : Visibility.Collapsed;
         }
 
         private void UpdateRuleCount()
         {
             RuleCountText.Text = Rules.Count == 1 ? "1 rule" : $"{Rules.Count} rules";
+            UpdateReceiveTimeoutVisibility();
         }
 
         #endregion
@@ -202,7 +248,7 @@ namespace SocketTestTool.Views
         private void ConnectionMode_Changed(object sender, RoutedEventArgs e)
         {
             // InitializeComponent 도중에도 Checked가 발생하므로 컨트롤 생성 여부를 확인합니다.
-            if (ServerOptionsPanel == null) return;
+            if (ResponseOptionsPanel == null) return;
 
             _isServerMode = ServerModeRadio.IsChecked == true;
             ApplyModeVisibility();
@@ -227,6 +273,8 @@ namespace SocketTestTool.Views
             ReplyOptionsPanel.Visibility = ReplyAfterReceiveRadio.IsChecked == true
                 ? Visibility.Visible
                 : Visibility.Collapsed;
+
+            UpdateReceiveTimeoutVisibility();
         }
 
         private void AddRule_Click(object sender, RoutedEventArgs e)
@@ -282,9 +330,18 @@ namespace SocketTestTool.Views
             {
                 ReplyMessage = ReplyMessageTextBox.Text;
                 IsReplyEndless = EndlessReplyCheckBox.IsChecked == true;
+            }
 
-                if (int.TryParse(ReceiveTimeoutTextBox.Text, out int timeout)) ReceiveTimeout = timeout;
-                else ReceiveTimeout = 500; // 기본값
+            // 조각 합치기는 고정 응답뿐 아니라 규칙만 쓰는 경우에도 필요합니다.
+            // 입력란이 보이지 않는 설정에서는 0(합치지 않음)으로 둡니다.
+            if (ReceiveTimeoutPanel.Visibility == Visibility.Visible)
+            {
+                if (int.TryParse(ReceiveTimeoutTextBox.Text, out int timeout) && timeout >= 0) ReceiveTimeout = timeout;
+                else ReceiveTimeout = 300;
+            }
+            else
+            {
+                ReceiveTimeout = 0;
             }
 
             IsRealtimeLogEnabled = LogOnRadio.IsChecked == true;

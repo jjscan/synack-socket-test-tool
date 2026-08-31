@@ -55,6 +55,7 @@ namespace FullQa
                 ("K. 파일 로깅 / 로그 저장", FileLogging),
                 ("L. 수신 데이터 자동 전달", Forwarding),
                 ("M. 실패 처리와 배너", Failures),
+                ("M2. 클라이언트 자동 응답", ClientAutoReply),
                 ("N. 세션 저장 / 불러오기", Session),
                 ("O. 테마", Theme),
                 ("P. 자원 정리 / 경합", Cleanup),
@@ -224,8 +225,11 @@ namespace FullQa
 
             Check("서버 모드 기본 IP가 0.0.0.0", Field<TextBox>(dlg, "IpTextBox")?.Text == "0.0.0.0",
                   Field<TextBox>(dlg, "IpTextBox")?.Text);
-            Check("서버 모드에서 서버 전용 설정이 보임",
-                  Field<StackPanel>(dlg, "ServerOptionsPanel")?.Visibility == Visibility.Visible);
+            Check("서버 모드에서 응답 설정이 보임",
+                  Field<StackPanel>(dlg, "ResponseOptionsPanel")?.Visibility == Visibility.Visible);
+            Check("서버 모드에서는 Echo·접속 시 1회 전송 카드가 보임",
+                  Field<RadioButton>(dlg, "EchoRadio")?.Visibility == Visibility.Visible &&
+                  Field<RadioButton>(dlg, "SendOnceRadio")?.Visibility == Visibility.Visible);
             Check("기본 응답 패턴이 Echo", Field<RadioButton>(dlg, "EchoRadio")?.IsChecked == true);
             Check("기본 인코딩이 ASCII", dlg.EncodingName == "ASCII", dlg.EncodingName);
 
@@ -275,14 +279,19 @@ namespace FullQa
             { WindowStartupLocation = WindowStartupLocation.Manual, Left = -10000, Top = -10000, ShowInTaskbar = false };
             dlg2.Show(); dlg2.UpdateLayout(); Pump(150);
             Check("클라이언트 모드 기본 IP가 127.0.0.1", Field<TextBox>(dlg2, "IpTextBox")?.Text == "127.0.0.1");
-            Check("클라이언트 모드에서는 서버 전용 설정이 숨겨짐",
-                  Field<StackPanel>(dlg2, "ServerOptionsPanel")?.Visibility == Visibility.Collapsed);
+            Check("클라이언트 모드에도 응답 설정이 보임",
+                  Field<StackPanel>(dlg2, "ResponseOptionsPanel")?.Visibility == Visibility.Visible);
+            Check("클라이언트 모드에서는 Echo·접속 시 1회 전송 카드가 숨겨짐",
+                  Field<RadioButton>(dlg2, "EchoRadio")?.Visibility == Visibility.Collapsed &&
+                  Field<RadioButton>(dlg2, "SendOnceRadio")?.Visibility == Visibility.Collapsed);
+            Check("클라이언트 기본값은 자동 응답 없음",
+                  Field<RadioButton>(dlg2, "ListenOnlyRadio")?.IsChecked == true);
 
             // 모드 전환
             Field<RadioButton>(dlg2, "ServerModeRadio").IsChecked = true;
             Pump(120);
             Check("대화상자 안에서 서버로 전환 가능",
-                  dlg2.IsServerMode && Field<StackPanel>(dlg2, "ServerOptionsPanel")?.Visibility == Visibility.Visible);
+                  dlg2.IsServerMode && Field<RadioButton>(dlg2, "EchoRadio")?.Visibility == Visibility.Visible);
             Check("모드 전환 시 기본 IP도 함께 바뀜", Field<TextBox>(dlg2, "IpTextBox")?.Text == "0.0.0.0");
             dlg2.Close();
 
@@ -829,6 +838,197 @@ namespace FullQa
         #endregion
 
         #region L. 자동 전달
+
+        /// <summary>
+        /// 클라이언트가 '상대가 보내오면 정해진 값으로 회신'하는 기능을 실제 소켓으로 확인합니다.
+        /// 서버는 ListenOnly로 두어, 오가는 것이 전부 클라이언트의 자동 응답임을 보장합니다.
+        /// </summary>
+        private static void ClientAutoReply()
+        {
+            // 1) 고정 응답 - 서버가 보내면 클라이언트가 ACK로 회신
+            {
+                var srv = RunningServer(out int port, "ListenOnly");
+                var cli = Client(port);
+                cli.ResponsePattern = "ReplyAfterReceive";
+                cli.ReplyMessage = "ACK";
+                cli.IsReplyEndless = true;
+                Add(cli);
+                Start(cli);
+                Check("클라이언트 접속", WaitUntil(() => cli.Status == "Connected", 3000), cli.Status);
+                Check("카드 요약에 자동 응답 표시", (cli.MetaText ?? "").Contains("자동응답"), cli.MetaText);
+
+                Select(srv);
+                _vm.SendText = "HELLO";
+                _vm.SendCommand.Execute(null);
+
+                Check("서버가 보내면 클라이언트가 자동 회신",
+                      WaitUntil(() => Logged(cli, LogDirection.Sent, "Auto reply"), 4000));
+                Check("회신 내용이 서버에 도착", WaitUntil(() => Logged(srv, LogDirection.Received, "ACK"), 4000));
+                Stop(srv, cli);
+            }
+            Reset();
+
+            // 2) 지속 응답이 아니면 한 번만 회신
+            {
+                var srv = RunningServer(out int port, "ListenOnly");
+                var cli = Client(port);
+                cli.ResponsePattern = "ReplyAfterReceive";
+                cli.ReplyMessage = "ONCE";
+                cli.IsReplyEndless = false;
+                Add(cli);
+                Start(cli);
+                WaitUntil(() => cli.Status == "Connected", 3000);
+
+                Select(srv);
+                for (int i = 0; i < 3; i++)
+                {
+                    _vm.SendText = "PROBE" + i;
+                    _vm.SendCommand.Execute(null);
+                    Pump(250);
+                }
+                Pump(500);
+                int replies = cli.Logs.Count(l => l.Direction == LogDirection.Sent &&
+                                                  (l.Message ?? "").Contains("Auto reply"));
+                Check("지속 응답이 꺼져 있으면 1회만 회신", replies == 1, "회신=" + replies);
+                Stop(srv, cli);
+            }
+            Reset();
+
+            // 3) 규칙 기반 - 받은 내용에 따라 다른 값으로 회신
+            {
+                var srv = RunningServer(out int port, "ListenOnly");
+                var cli = Client(port);
+                cli.ResponsePattern = "ListenOnly"; // 고정 응답은 끔
+                cli.Rules.Add(new ResponseRule { ReceiveData = "PING", SendData = "PONG" });
+                cli.Rules.Add(new ResponseRule { ReceiveData = "STAT", SendData = "OK-200" });
+                Add(cli);
+                Start(cli);
+                WaitUntil(() => cli.Status == "Connected", 3000);
+                Check("카드 요약에 규칙 개수 표시", (cli.MetaText ?? "").Contains("규칙 2개"), cli.MetaText);
+
+                Select(srv);
+                _vm.SendText = "PING";
+                _vm.SendCommand.Execute(null);
+                Check("규칙에 맞는 회신이 서버에 도착", WaitUntil(() => Logged(srv, LogDirection.Received, "PONG"), 4000));
+
+                _vm.SendText = "STAT";
+                _vm.SendCommand.Execute(null);
+                Check("다른 규칙은 다른 값으로 회신", WaitUntil(() => Logged(srv, LogDirection.Received, "OK-200"), 4000));
+
+                _vm.SendText = "NOMATCH";
+                _vm.SendCommand.Execute(null);
+                Pump(700);
+                int sent = cli.Logs.Count(l => l.Direction == LogDirection.Sent);
+                Check("규칙에 없는 내용에는 회신하지 않음", sent == 2, "회신=" + sent);
+                Stop(srv, cli);
+            }
+            Reset();
+
+            // 4) 자동 응답을 켜지 않은 클라이언트는 예전 그대로 조용해야 합니다.
+            {
+                var srv = RunningServer(out int port, "ListenOnly");
+                var cli = Add(Client(port)); // 기본값 그대로
+                Start(cli);
+                WaitUntil(() => cli.Status == "Connected", 3000);
+
+                Select(srv);
+                _vm.SendText = "QUIET";
+                _vm.SendCommand.Execute(null);
+                Check("서버가 보낸 내용을 클라이언트가 수신", WaitUntil(() => Logged(cli, LogDirection.Received, "QUIET"), 4000));
+                Pump(700);
+                Check("자동 응답을 안 켜면 아무것도 보내지 않음",
+                      !cli.Logs.Any(l => l.Direction == LogDirection.Sent));
+                Check("카드 요약에도 자동 응답이 안 적힘",
+                      !(cli.MetaText ?? "").Contains("자동응답") && !(cli.MetaText ?? "").Contains("규칙"), cli.MetaText);
+                Stop(srv, cli);
+            }
+            Reset();
+
+            // 5) 조각 합치기 - ReceiveTimeout이 있으면 쪼개져 와도 규칙이 걸립니다.
+            {
+                int port = FreePort();
+                using (var peer = new PeerServer(port))
+                {
+                    var cli = Client(port);
+                    cli.ReceiveTimeout = 300;
+                    cli.Rules.Add(new ResponseRule { ReceiveData = "PINGPONG", SendData = "MERGED" });
+                    Add(cli);
+                    Start(cli);
+                    WaitUntil(() => cli.Status == "Connected", 3000);
+                    Check("시험용 서버가 클라이언트를 받음", peer.WaitForClient(3000));
+
+                    peer.SendAscii("PING"); // 한 전문을 일부러 두 조각으로 나눠 보냅니다
+                    Pump(80);
+                    peer.SendAscii("PONG");
+
+                    Check("조각이 합쳐져 규칙이 걸림",
+                          WaitUntil(() => peer.TextAscii().Contains("MERGED"), 5000), peer.TextAscii());
+                    WaitUntil(() => cli.Logs.Any(l => l.Direction == LogDirection.Received), 3000);
+                    Pump(400); // 혹시 두 건으로 나뉘어 들어오지는 않는지까지 확인
+                    Check("합쳐진 한 건으로 로그에 남음",
+                          cli.Logs.Count(l => l.Direction == LogDirection.Received) == 1,
+                          "수신 로그=" + cli.Logs.Count(l => l.Direction == LogDirection.Received));
+                    Stop(cli);
+                }
+            }
+            Reset();
+
+            // 6) ReceiveTimeout이 0이면 예전처럼 조각 그대로 들어옵니다. (기존 세션 호환)
+            {
+                int port = FreePort();
+                using (var peer = new PeerServer(port))
+                {
+                    var cli = Add(Client(port)); // ReceiveTimeout 기본 0
+                    Start(cli);
+                    WaitUntil(() => cli.Status == "Connected", 3000);
+                    peer.WaitForClient(3000);
+
+                    peer.SendAscii("AAA");
+                    WaitUntil(() => cli.Logs.Any(l => l.Direction == LogDirection.Received), 3000);
+                    peer.SendAscii("BBB");
+                    WaitUntil(() => cli.Logs.Count(l => l.Direction == LogDirection.Received) >= 2, 3000);
+                    Pump(300);
+
+                    Check("합치기를 끄면 조각마다 로그가 남음",
+                          cli.Logs.Count(l => l.Direction == LogDirection.Received) == 2,
+                          "수신 로그=" + cli.Logs.Count(l => l.Direction == LogDirection.Received));
+                    Stop(cli);
+                }
+            }
+            Reset();
+
+            // 7) 주기 전송과 동시에 켜도 서로 방해하지 않아야 합니다.
+            {
+                var srv = RunningServer(out int port, "ListenOnly");
+                var cli = Client(port);
+                cli.ResponsePattern = "ReplyAfterReceive";
+                cli.ReplyMessage = "ACK";
+                cli.IsReplyEndless = true;
+                Add(cli);
+                Start(cli);
+                WaitUntil(() => cli.Status == "Connected", 3000);
+
+                Select(cli);
+                _vm.IsPeriodicMode = true;
+                _vm.PeriodicSendText = "HB";
+                _vm.IntervalText = "100";
+                _vm.PeriodicSendCommand.Execute(null);
+                Check("주기 전송 시작", WaitUntil(() => cli.IsPeriodicSending, 2000));
+                Check("하트비트가 서버에 도착", WaitUntil(() => Logged(srv, LogDirection.Received, "HB"), 4000));
+
+                Select(srv);
+                _vm.SendText = "POKE";
+                _vm.SendCommand.Execute(null);
+                Check("주기 전송 중에도 자동 응답이 나감",
+                      WaitUntil(() => Logged(srv, LogDirection.Received, "ACK"), 4000));
+
+                Select(cli);
+                _vm.PeriodicSendCommand.Execute(null);
+                Pump(300);
+                Check("주기 전송 중지", !cli.IsPeriodicSending);
+                Stop(srv, cli);
+            }
+        }
 
         private static void Forwarding()
         {
