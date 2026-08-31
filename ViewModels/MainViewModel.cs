@@ -391,14 +391,16 @@ namespace SocketTestTool.ViewModels
                 LogFilePath = dialog.LogFilePath
             };
 
-            if (isServer)
-            {
-                connection.ResponsePattern = dialog.ResponsePattern;
-                connection.Rules = dialog.Rules.ToList();
-                connection.ReplyMessage = dialog.ReplyMessage;
-                connection.IsReplyEndless = dialog.IsReplyEndless;
-                connection.ReceiveTimeout = dialog.ReceiveTimeout;
-            }
+            // 응답 설정은 서버와 클라이언트 양쪽에서 씁니다.
+            // (예전에는 여기가 if (isServer) 로 막혀 있어, 클라이언트에서 자동 응답을
+            //  설정해도 그대로 버려졌습니다 — QA-HISTORY.md 결함 #18)
+            connection.ResponsePattern = dialog.ResponsePattern;
+            connection.Rules = dialog.Rules.ToList();
+            connection.ReplyMessage = dialog.ReplyMessage;
+            connection.IsReplyEndless = dialog.IsReplyEndless;
+            connection.ReceiveTimeout = dialog.ReceiveTimeout;
+            connection.IsSendOnConnect = dialog.IsSendOnConnect;
+            connection.SendOnConnectMessage = dialog.SendOnConnectMessage;
 
             RefreshConnectionMeta(connection);
             Connections.Add(connection);
@@ -472,14 +474,13 @@ namespace SocketTestTool.ViewModels
                 selectedConnection.ForwardPort = dialog.ForwardPort;
                 selectedConnection.IsRealtimeLogEnabled = dialog.IsRealtimeLogEnabled;
                 selectedConnection.LogFilePath = dialog.LogFilePath;
-                if (isServer)
-                {
-                    selectedConnection.ResponsePattern = dialog.ResponsePattern;
-                    selectedConnection.Rules = dialog.Rules.ToList();
-                    selectedConnection.ReplyMessage = dialog.ReplyMessage;
-                    selectedConnection.IsReplyEndless = dialog.IsReplyEndless;
-                    selectedConnection.ReceiveTimeout = dialog.ReceiveTimeout;
-                }
+                selectedConnection.ResponsePattern = dialog.ResponsePattern;
+                selectedConnection.Rules = dialog.Rules.ToList();
+                selectedConnection.ReplyMessage = dialog.ReplyMessage;
+                selectedConnection.IsReplyEndless = dialog.IsReplyEndless;
+                selectedConnection.ReceiveTimeout = dialog.ReceiveTimeout;
+                selectedConnection.IsSendOnConnect = dialog.IsSendOnConnect;
+                selectedConnection.SendOnConnectMessage = dialog.SendOnConnectMessage;
 
                 RefreshConnectionMeta(selectedConnection);
 
@@ -1051,6 +1052,8 @@ namespace SocketTestTool.ViewModels
                     ReplyMessage = conn.ReplyMessage,
                     IsReplyEndless = conn.IsReplyEndless,
                     ReceiveTimeout = conn.ReceiveTimeout,
+                    IsSendOnConnect = conn.IsSendOnConnect,
+                    SendOnConnectMessage = conn.SendOnConnectMessage,
                     CurrentEncoding = GetEncodingByName(conn.EncodingName),
                     IsRealtimeLogEnabled = conn.IsRealtimeLogEnabled
                 };
@@ -1213,6 +1216,7 @@ namespace SocketTestTool.ViewModels
                             : hasRules ? $"규칙 {conn.Rules!.Count}개"
                             : "자동응답");
                 }
+                if (conn.IsSendOnConnect) parts.Add("접속 시 전송");
             }
 
             parts.Add(conn.EncodingName);

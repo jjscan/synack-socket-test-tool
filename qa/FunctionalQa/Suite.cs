@@ -1028,6 +1028,164 @@ namespace FullQa
                 Check("주기 전송 중지", !cli.IsPeriodicSending);
                 Stop(srv, cli);
             }
+            Reset();
+
+            // 8) 대화상자에서 고른 값이 실제 연결까지 옮겨져야 합니다.
+            //    예전에는 ViewModel이 if (isServer) 안에서만 값을 복사해서,
+            //    클라이언트에서 자동 응답을 설정해도 조용히 버려졌습니다. (결함 #18)
+            {
+                var dlg = new AddConnectionWindow(false, null, _vm.Connections)
+                { WindowStartupLocation = WindowStartupLocation.Manual, Left = -10000, Top = -10000, ShowInTaskbar = false };
+                dlg.Show(); dlg.UpdateLayout(); Pump(150);
+
+                Check("클라이언트 대화상자에서 '수신 후 응답'을 고를 수 있음",
+                      Field<RadioButton>(dlg, "ReplyAfterReceiveRadio")?.Visibility == Visibility.Visible &&
+                      Field<RadioButton>(dlg, "ReplyAfterReceiveRadio")?.IsEnabled == true);
+
+                Field<RadioButton>(dlg, "ReplyAfterReceiveRadio").IsChecked = true;
+                Pump(120);
+                Check("고르면 응답 데이터 입력란이 나타남",
+                      Field<StackPanel>(dlg, "ReplyOptionsPanel")?.Visibility == Visibility.Visible);
+                Check("고르면 수신 대기 입력란도 나타남",
+                      Field<StackPanel>(dlg, "ReceiveTimeoutPanel")?.Visibility == Visibility.Visible);
+
+                Field<TextBox>(dlg, "IpTextBox").Text = "127.0.0.1";
+                Field<TextBox>(dlg, "PortTextBox").Text = FreePort().ToString();
+                Field<TextBox>(dlg, "ReplyMessageTextBox").Text = "DLG-ACK";
+                Field<CheckBox>(dlg, "EndlessReplyCheckBox").IsChecked = true;
+                Field<TextBox>(dlg, "ReceiveTimeoutTextBox").Text = "250";
+                Field<TextBox>(dlg, "ReceiveRuleTextBox").Text = "PING";
+                Field<TextBox>(dlg, "SendRuleTextBox").Text = "PONG";
+                Invoke(dlg, "AddRule_Click", null, null);
+                Invoke(dlg, "OkButton_Click", null, null);
+                Pump(120);
+
+                Check("대화상자 결과에 응답 설정이 담김",
+                      dlg.ResponsePattern == "ReplyAfterReceive" && dlg.ReplyMessage == "DLG-ACK" &&
+                      dlg.IsReplyEndless && dlg.ReceiveTimeout == 250 && dlg.Rules.Count == 1,
+                      $"{dlg.ResponsePattern}/{dlg.ReplyMessage}/{dlg.IsReplyEndless}/{dlg.ReceiveTimeout}/{dlg.Rules.Count}");
+
+                // ViewModel이 대화상자 결과를 연결에 옮기는 부분만 따로 확인합니다.
+                // (AddClient 커맨드는 모달을 띄워 자동화할 수 없으므로, 커맨드가 호출하는
+                //  AddConnectionFromDialog 를 그대로 통과시킵니다)
+                Invoke(_vm, "AddConnectionFromDialog", dlg);
+                Pump(150);
+
+                var made = _vm.Connections.LastOrDefault();
+                Check("연결에 응답 패턴이 옮겨짐", made?.ResponsePattern == "ReplyAfterReceive", made?.ResponsePattern);
+                Check("연결에 응답 데이터가 옮겨짐", made?.ReplyMessage == "DLG-ACK", made?.ReplyMessage);
+                Check("연결에 지속 응답이 옮겨짐", made?.IsReplyEndless == true);
+                Check("연결에 수신 대기가 옮겨짐", made?.ReceiveTimeout == 250, made?.ReceiveTimeout.ToString());
+                Check("연결에 규칙이 옮겨짐", made?.Rules.Count == 1 && made.Rules[0].SendData == "PONG");
+                Check("클라이언트로 만들어짐", made?.Type == "Client", made?.Type);
+
+                dlg.Close();
+            }
+            Reset();
+
+            // 9) 접속 인사 - 클라이언트가 먼저 말을 겁니다.
+            {
+                var srv = RunningServer(out int port, "ListenOnly");
+                var cli = Client(port);
+                cli.IsSendOnConnect = true;
+                cli.SendOnConnectMessage = "LOGIN[STX]";
+                Add(cli);
+                Start(cli);
+                WaitUntil(() => cli.Status == "Connected", 3000);
+
+                Check("접속하자마자 보낸 내용이 서버에 도착",
+                      WaitUntil(() => Logged(srv, LogDirection.Received, "LOGIN"), 4000));
+                Check("제어문자 태그가 실제 바이트로 나감",
+                      srv.Logs.Any(l => l.Direction == LogDirection.Received && l.Data != null &&
+                                        l.Data.Length > 0 && l.Data[l.Data.Length - 1] == 0x02));
+                Check("카드 요약에 접속 시 전송 표시", (cli.MetaText ?? "").Contains("접속 시 전송"), cli.MetaText);
+                Stop(srv, cli);
+            }
+            Reset();
+
+            // 10) 교착이 풀리는지 - 양쪽 다 '받으면 응답'인데 클라이언트가 첫 마디를 던집니다.
+            //     접속 인사가 없으면 아무도 말하지 않아 영영 대기합니다.
+            {
+                var srv = RunningServer(out int port, "ReplyAfterReceive", "SRV-ACK", endless: true);
+                var cli = Client(port);
+                cli.ResponsePattern = "ReplyAfterReceive";
+                cli.ReplyMessage = "CLI-ACK";
+                cli.IsReplyEndless = false;        // 끝없이 왕복하지 않도록 1회만
+                cli.IsSendOnConnect = true;
+                cli.SendOnConnectMessage = "HELLO";
+                Add(cli);
+                Start(cli);
+                WaitUntil(() => cli.Status == "Connected", 3000);
+
+                Check("클라이언트의 첫 마디가 서버에 도착", WaitUntil(() => Logged(srv, LogDirection.Received, "HELLO"), 4000));
+                Check("서버가 응답", WaitUntil(() => Logged(cli, LogDirection.Received, "SRV-ACK"), 4000));
+                Check("클라이언트가 그 응답에 다시 회신", WaitUntil(() => Logged(srv, LogDirection.Received, "CLI-ACK"), 4000));
+                Stop(srv, cli);
+            }
+            Reset();
+
+            // 11) 접속 인사를 끄면 아무 일도 일어나지 않아야 합니다. (기본값 확인)
+            {
+                var srv = RunningServer(out int port, "ListenOnly");
+                var cli = Add(Client(port));
+                Start(cli);
+                WaitUntil(() => cli.Status == "Connected", 3000);
+                Pump(700);
+                Check("접속 인사를 끄면 접속만 하고 조용함",
+                      !srv.Logs.Any(l => l.Direction == LogDirection.Received));
+                Stop(srv, cli);
+            }
+            Reset();
+
+            // 12) 대화상자에서 접속 인사를 설정하면 연결까지 옮겨져야 합니다.
+            {
+                var dlg = new AddConnectionWindow(false, null, _vm.Connections)
+                { WindowStartupLocation = WindowStartupLocation.Manual, Left = -10000, Top = -10000, ShowInTaskbar = false };
+                dlg.Show(); dlg.UpdateLayout(); Pump(150);
+
+                Check("클라이언트 화면에 접속 인사 항목이 있음",
+                      Field<Border>(dlg, "SendOnConnectCard")?.Visibility == Visibility.Visible);
+
+                Field<CheckBox>(dlg, "SendOnConnectCheckBox").IsChecked = true;
+                Pump(120);
+                Check("켜면 보낼 데이터 입력란이 나타남",
+                      Field<StackPanel>(dlg, "SendOnConnectDataPanel")?.Visibility == Visibility.Visible);
+
+                Field<TextBox>(dlg, "IpTextBox").Text = "127.0.0.1";
+                Field<TextBox>(dlg, "PortTextBox").Text = FreePort().ToString();
+
+                // 데이터를 비운 채 확정하면 막아야 합니다.
+                Invoke(dlg, "OkButton_Click", null, null);
+                Check("보낼 데이터가 비어 있으면 확정을 막음",
+                      (Field<TextBlock>(dlg, "StatusText")?.Text ?? "").Contains("먼저 보낼 데이터"),
+                      Field<TextBlock>(dlg, "StatusText")?.Text);
+
+                Field<TextBox>(dlg, "SendOnConnectTextBox").Text = "HELLO-DLG";
+                Invoke(dlg, "OkButton_Click", null, null);
+                Pump(120);
+                Check("대화상자 결과에 접속 인사가 담김",
+                      dlg.IsSendOnConnect && dlg.SendOnConnectMessage == "HELLO-DLG",
+                      dlg.IsSendOnConnect + "/" + dlg.SendOnConnectMessage);
+
+                Invoke(_vm, "AddConnectionFromDialog", dlg);
+                Pump(150);
+                var made = _vm.Connections.LastOrDefault();
+                Check("연결에 접속 인사가 옮겨짐",
+                      made?.IsSendOnConnect == true && made.SendOnConnectMessage == "HELLO-DLG",
+                      made?.IsSendOnConnect + "/" + made?.SendOnConnectMessage);
+                dlg.Close();
+            }
+            Reset();
+
+            // 13) 서버 화면에는 접속 인사가 없어야 합니다. (서버는 '접속 시 1회 전송'이 따로 있음)
+            {
+                var dlg = new AddConnectionWindow(true, null, _vm.Connections)
+                { WindowStartupLocation = WindowStartupLocation.Manual, Left = -10000, Top = -10000, ShowInTaskbar = false };
+                dlg.Show(); dlg.UpdateLayout(); Pump(150);
+                Check("서버 화면에는 접속 인사 항목이 없음",
+                      Field<Border>(dlg, "SendOnConnectCard")?.Visibility == Visibility.Collapsed);
+                dlg.Close();
+            }
         }
 
         private static void Forwarding()
@@ -1238,6 +1396,21 @@ namespace FullQa
             Check("AutoStart=true면 불러오면서 자동 시작",
                   WaitUntil(() => _vm.Connections.FirstOrDefault()?.Status == "Listening", 4000),
                   _vm.Connections.FirstOrDefault()?.Status);
+
+            // 새 필드가 없는 예전 형식 세션도 그대로 읽혀야 합니다.
+            _vm.Connections.Clear();
+            Pump(100);
+            File.WriteAllText(path,
+                "[{\"Type\":\"Client\",\"IpAddress\":\"127.0.0.1\",\"Port\":19999," +
+                "\"Address\":\"127.0.0.1:19999\",\"Status\":\"Stopped\"," +
+                "\"ResponsePattern\":\"Echo\",\"EncodingName\":\"ASCII\"," +
+                "\"ReceiveTimeout\":0,\"AutoStart\":false}]");
+            _vm.OpenRecentSessionCommand.Execute(path);
+            Pump(400);
+            var legacy = _vm.Connections.FirstOrDefault();
+            Check("새 필드가 없는 예전 세션도 읽힘", legacy != null && legacy.Port == 19999);
+            Check("예전 세션은 접속 인사가 꺼진 상태", legacy?.IsSendOnConnect == false);
+            Check("예전 세션은 조각 합치기가 꺼진 상태", legacy?.ReceiveTimeout == 0, legacy?.ReceiveTimeout.ToString());
 
             try { File.Delete(path); } catch (Exception) { }
         }

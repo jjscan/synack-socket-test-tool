@@ -59,9 +59,26 @@ namespace SocketTestTool.Models
             // v2.0.1은 재설계 이후에 나온 '원래 되어야 했던 것'들만 고친 패치입니다.
             new ReleaseNote
             {
-                Version = "v2.1.0",
+                Version = "v2.2.0",
                 ReleaseDate = "2026-08-31",
                 IsCurrent = true,
+                Tagline = "클라이언트가 먼저 말 걸기",
+                Improvements =
+                {
+                    new ReleaseNoteItem("클라이언트가 접속하면 먼저 보낼 수 있습니다",
+                        "연결 추가 창의 '접속하면 먼저 보내기'를 켜고 보낼 데이터를 넣으면, 서버에 붙자마자 그 내용을 한 번 보냅니다. 자동 응답과 따로 동작하므로 '접속 → 로그인 전문 → 서버 응답 → 클라이언트 회신' 같은 대화를 통째로 흉내낼 수 있습니다.")
+                },
+                BugFixes =
+                {
+                    new ReleaseNoteItem("클라이언트 자동 응답 설정이 저장되지 않던 문제",
+                        "v2.1.0에서 클라이언트의 자동 응답과 규칙을 설정해도 실제 연결에 반영되지 않아 동작하지 않았습니다. 설정한 값이 그대로 적용됩니다.")
+                }
+            },
+
+            new ReleaseNote
+            {
+                Version = "v2.1.0",
+                ReleaseDate = "2026-08-31",
                 Tagline = "클라이언트 자동 응답",
                 Improvements =
                 {

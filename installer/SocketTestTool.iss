@@ -13,7 +13,7 @@
 #define AppExe "..\bin\Release\net8.0-windows\publish\win-x64\SocketTestTool.exe"
 
 ; 버전은 여기 한 곳만 고칩니다. csproj의 <Version>과 같아야 합니다.
-#define AppVersion "2.1.0"
+#define AppVersion "2.2.0"
 
 ; 빌드된 exe와 위 버전이 어긋나면 여기서 멈춥니다.
 ; (publish를 다시 하지 않고 설치 파일만 만드는 실수를 막습니다)

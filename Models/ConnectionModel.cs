@@ -95,6 +95,17 @@ namespace SocketTestTool.Models
         public bool IsReplyEndless { get; set; }
 
         /// <summary>
+        /// (클라이언트 전용) 접속 직후에 정해진 데이터를 한 번 보낼지 여부입니다.
+        /// 서버가 먼저 말을 걸지 않는 상대와도 대화를 시작할 수 있게 합니다.
+        /// </summary>
+        public bool IsSendOnConnect { get; set; }
+
+        /// <summary>
+        /// (클라이언트 전용) 접속 직후에 보낼 데이터입니다. [STX] 같은 제어문자 태그를 쓸 수 있습니다.
+        /// </summary>
+        public string? SendOnConnectMessage { get; set; }
+
+        /// <summary>
         /// 수신 타임아웃 (기본값 300ms) : 설정된 시간동안 추가 데이터가 오는지 기다립니다.(Fragmentation 방지용)
         /// </summary>
         public int ReceiveTimeout { get; set; } = 300;

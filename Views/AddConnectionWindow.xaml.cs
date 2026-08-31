@@ -39,6 +39,8 @@ namespace SocketTestTool.Views
         public ObservableCollection<ResponseRule> Rules { get; set; }
         public string ReplyMessage { get; private set; } = string.Empty;
         public bool IsReplyEndless { get; private set; }
+        public bool IsSendOnConnect { get; private set; }
+        public string SendOnConnectMessage { get; private set; } = string.Empty;
         public bool IsRealtimeLogEnabled { get; private set; }
         public string LogFilePath { get; private set; } = string.Empty;
         public string EncodingName { get; private set; } = "ASCII";
@@ -116,6 +118,9 @@ namespace SocketTestTool.Views
             LogOnRadio.IsChecked = existing.IsRealtimeLogEnabled;
 
             SelectResponsePattern(existing.ResponsePattern ?? "Echo");
+
+            SendOnConnectCheckBox.IsChecked = existing.IsSendOnConnect;
+            SendOnConnectTextBox.Text = existing.SendOnConnectMessage ?? string.Empty;
 
             if (existing.Manager is TcpServerManager manager)
             {
@@ -216,6 +221,10 @@ namespace SocketTestTool.Views
                 EchoRadio.IsChecked = true;
             }
 
+            // 접속 인사는 클라이언트에서만 의미가 있습니다. 서버는 접속을 '받는' 쪽이고,
+            // 접속 직후 전송이 필요하면 '접속 시 1회 전송' 응답 패턴이 이미 있습니다.
+            SendOnConnectCard.Visibility = _isServerMode ? Visibility.Collapsed : Visibility.Visible;
+
             UpdateReceiveTimeoutVisibility();
         }
 
@@ -277,6 +286,18 @@ namespace SocketTestTool.Views
             UpdateReceiveTimeoutVisibility();
         }
 
+        /// <summary>
+        /// '접속하면 먼저 보내기'를 켜고 끌 때 입력란을 함께 보였다 감춥니다.
+        /// </summary>
+        private void SendOnConnect_Changed(object sender, RoutedEventArgs e)
+        {
+            if (SendOnConnectDataPanel == null) return;
+
+            SendOnConnectDataPanel.Visibility = SendOnConnectCheckBox.IsChecked == true
+                ? Visibility.Visible
+                : Visibility.Collapsed;
+        }
+
         private void AddRule_Click(object sender, RoutedEventArgs e)
         {
             if (string.IsNullOrWhiteSpace(ReceiveRuleTextBox.Text) && string.IsNullOrWhiteSpace(SendRuleTextBox.Text))
@@ -330,6 +351,21 @@ namespace SocketTestTool.Views
             {
                 ReplyMessage = ReplyMessageTextBox.Text;
                 IsReplyEndless = EndlessReplyCheckBox.IsChecked == true;
+            }
+
+            IsSendOnConnect = !_isServerMode && SendOnConnectCheckBox.IsChecked == true;
+            if (IsSendOnConnect)
+            {
+                if (string.IsNullOrEmpty(SendOnConnectTextBox.Text))
+                {
+                    ShowCheckResult(false, "접속하면 먼저 보낼 데이터를 입력하세요.");
+                    return;
+                }
+                SendOnConnectMessage = SendOnConnectTextBox.Text;
+            }
+            else
+            {
+                SendOnConnectMessage = string.Empty;
             }
 
             // 조각 합치기는 고정 응답뿐 아니라 규칙만 쓰는 경우에도 필요합니다.

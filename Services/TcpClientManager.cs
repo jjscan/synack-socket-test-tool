@@ -87,6 +87,18 @@ namespace SocketTestTool.Services
         public bool IsReplyEndless { get; set; }
 
         /// <summary>
+        /// 접속 직후에 <see cref="SendOnConnectMessage"/>를 한 번 보낼지 여부입니다.
+        /// 자동 응답과는 별개입니다. 양쪽 다 '받으면 응답'이면 아무도 먼저 말하지 않아
+        /// 영영 대기하게 되는데, 이 설정이 그 첫 마디를 담당합니다.
+        /// </summary>
+        public bool IsSendOnConnect { get; set; }
+
+        /// <summary>
+        /// 접속 직후에 보낼 데이터입니다.
+        /// </summary>
+        public string? SendOnConnectMessage { get; set; }
+
+        /// <summary>
         /// 수신 조각을 합치기 위해 기다리는 침묵 시간(ms)입니다.
         /// <b>0이면 합치지 않고 받는 대로 처리합니다.</b> 서버의 같은 이름 설정과 동작이 같습니다.
         /// </summary>
@@ -115,6 +127,12 @@ namespace SocketTestTool.Services
 
                 // 데이터 수신을 위한 별도의 백그라운드 작업을 시작합니다.
                 _ = ReceiveDataAsync(_cancellationTokenSource.Token);
+
+                // 접속 인사를 보냅니다. 수신 루프를 먼저 띄워 두어야 상대의 즉답을 놓치지 않습니다.
+                if (IsSendOnConnect && !string.IsNullOrEmpty(SendOnConnectMessage))
+                {
+                    await Send(SendOnConnectMessage, CurrentEncoding).ConfigureAwait(false);
+                }
             }
             catch (Exception ex)
             {
